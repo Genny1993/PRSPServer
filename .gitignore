@@ -1,2 +1,45 @@
-gitignore
+# Visual Studio Code
+.vscode/
+.history/
+*.code-workspace
+
+# CMake (игнорировать только в корне, не трогая extern)
+/CMakeCache.txt
+/CMakeFiles/
+/cmake_install.cmake
+/Makefile
+/CMakeUserPresets.json
+/CTestTestfile.cmake
+/_CPack_Packages/
+/*.cmake
+!CMakeLists.txt
+
+# Сборка и компиляция (только в корне, не в extern)
+/build*/
+/Debug/
+/Release/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.a
+*.pdb
+
+# IDE и редакторы (везде, кроме extern)
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.temp
+*.cache
+*.lock
 

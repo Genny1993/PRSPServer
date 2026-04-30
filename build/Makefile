@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/gennycat/PRSPLoginServer
+CMAKE_SOURCE_DIR = /home/gennycat/Документы/GitHub/PRSPServer
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/gennycat/PRSPLoginServer/build
+CMAKE_BINARY_DIR = /home/gennycat/Документы/GitHub/PRSPServer/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,9 +87,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/gennycat/PRSPLoginServer/build/CMakeFiles /home/gennycat/PRSPLoginServer/build//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles /home/gennycat/Документы/GitHub/PRSPServer/build//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/gennycat/PRSPLoginServer/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target

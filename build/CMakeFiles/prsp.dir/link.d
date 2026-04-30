@@ -6,8 +6,8 @@ prsp: \
   CMakeFiles/prsp.dir/src/database.cpp.o \
   CMakeFiles/prsp.dir/src/main.cpp.o \
   CMakeFiles/prsp.dir/src/wsserver.cpp.o \
-  /home/gennycat/PRSPLoginServer/extern/mariadb-connector/lib64/mariadb/libmariadbcpp.so \
-  /home/gennycat/PRSPLoginServer/extern/uWebSockets/uSockets/uSockets.a \
+  /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/lib64/mariadb/libmariadbcpp.so \
+  /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/uSockets/uSockets.a \
   /usr/lib64/libuv.so \
   /usr/lib64/libssl.so \
   /usr/lib64/libcrypto.so \
@@ -39,7 +39,7 @@ prsp: \
   /usr/lib/gcc/x86_64-redhat-linux/15/libgcc.a \
   /usr/lib/gcc/x86_64-redhat-linux/15/crtend.o \
   /usr/lib/gcc/x86_64-redhat-linux/15/../../../../lib64/crtn.o \
-  /home/gennycat/PRSPLoginServer/extern/mariadb-connector/lib64/mariadb/libmariadb.so.3 \
+  /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/lib64/mariadb/libmariadb.so.3 \
   /lib64/ld-linux-x86-64.so.2
 
 /usr/lib/gcc/x86_64-redhat-linux/15/../../../../lib64/crt1.o:
@@ -56,9 +56,9 @@ CMakeFiles/prsp.dir/src/main.cpp.o:
 
 CMakeFiles/prsp.dir/src/wsserver.cpp.o:
 
-/home/gennycat/PRSPLoginServer/extern/mariadb-connector/lib64/mariadb/libmariadbcpp.so:
+/home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/lib64/mariadb/libmariadbcpp.so:
 
-/home/gennycat/PRSPLoginServer/extern/uWebSockets/uSockets/uSockets.a:
+/home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/uSockets/uSockets.a:
 
 /usr/lib64/libuv.so:
 
@@ -122,6 +122,6 @@ CMakeFiles/prsp.dir/src/wsserver.cpp.o:
 
 /usr/lib/gcc/x86_64-redhat-linux/15/../../../../lib64/crtn.o:
 
-/home/gennycat/PRSPLoginServer/extern/mariadb-connector/lib64/mariadb/libmariadb.so.3:
+/home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/lib64/mariadb/libmariadb.so.3:
 
 /lib64/ld-linux-x86-64.so.2:

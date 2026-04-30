@@ -1,6 +1,7 @@
 CMakeFiles/prsp.dir/src/main.cpp.o: \
- /home/gennycat/PRSPLoginServer/src/main.cpp /usr/include/stdc-predef.h \
- /usr/include/c++/15/iostream /usr/include/c++/15/bits/requires_hosted.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/src/main.cpp \
+ /usr/include/stdc-predef.h /usr/include/c++/15/iostream \
+ /usr/include/c++/15/bits/requires_hosted.h \
  /usr/include/c++/15/x86_64-redhat-linux/bits/c++config.h \
  /usr/include/bits/wordsize.h \
  /usr/include/c++/15/x86_64-redhat-linux/bits/os_defines.h \
@@ -167,11 +168,11 @@ CMakeFiles/prsp.dir/src/main.cpp.o: \
  /usr/include/c++/15/bits/ranges_algobase.h \
  /usr/include/c++/15/pstl/glue_algorithm_defs.h \
  /usr/include/c++/15/pstl/execution_defs.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/App.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/App.h \
  /usr/include/c++/15/charconv \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/HttpContext.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/Loop.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/LoopData.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/HttpContext.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/Loop.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/LoopData.h \
  /usr/include/c++/15/thread /usr/include/c++/15/stop_token \
  /usr/include/c++/15/atomic /usr/include/c++/15/bits/atomic_base.h \
  /usr/include/c++/15/bits/atomic_lockfree_defines.h \
@@ -206,11 +207,11 @@ CMakeFiles/prsp.dir/src/main.cpp.o: \
  /usr/include/c++/15/map /usr/include/c++/15/bits/stl_tree.h \
  /usr/include/c++/15/bits/stl_map.h \
  /usr/include/c++/15/bits/stl_multimap.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/PerMessageDeflate.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/PerMessageDeflate.h \
  /usr/include/c++/15/cstring /usr/include/string.h /usr/include/strings.h \
  /usr/include/zlib.h /usr/include/zconf.h \
  /usr/include/zlib_name_mangling.h /usr/include/c++/15/optional \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/MoveOnlyFunction.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/MoveOnlyFunction.h \
  /usr/include/c++/15/memory \
  /usr/include/c++/15/bits/stl_raw_storage_iter.h \
  /usr/include/c++/15/bits/align.h /usr/include/c++/15/bits/shared_ptr.h \
@@ -221,71 +222,71 @@ CMakeFiles/prsp.dir/src/main.cpp.o: \
  /usr/include/c++/15/backward/auto_ptr.h \
  /usr/include/c++/15/bits/ranges_uninitialized.h \
  /usr/include/c++/15/pstl/glue_memory_defs.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/uSockets/src/libusockets.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/HttpContextData.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/HttpRouter.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/uSockets/src/libusockets.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/HttpContextData.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/HttpRouter.h \
  /usr/include/c++/15/utility /usr/include/c++/15/bits/stl_relops.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/HttpResponseData.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/HttpParser.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/ChunkedEncoding.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/BloomFilter.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/HttpResponseData.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/HttpParser.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/ChunkedEncoding.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/BloomFilter.h \
  /usr/include/c++/15/bitset \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/ProxyParser.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/QueryParser.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/HttpErrors.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/AsyncSocketData.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/AsyncSocket.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/WebSocketData.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/WebSocketProtocol.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/TopicTree.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/ProxyParser.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/QueryParser.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/HttpErrors.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/AsyncSocketData.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/AsyncSocket.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/WebSocketData.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/WebSocketProtocol.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/TopicTree.h \
  /usr/include/c++/15/list /usr/include/c++/15/bits/stl_list.h \
  /usr/include/c++/15/bits/list.tcc /usr/include/c++/15/unordered_set \
  /usr/include/c++/15/bits/unordered_set.h /usr/include/c++/15/set \
  /usr/include/c++/15/bits/stl_set.h \
  /usr/include/c++/15/bits/stl_multiset.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/HttpResponse.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/Utilities.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/WebSocketExtensions.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/WebSocketHandshake.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/WebSocket.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/WebSocketContextData.h \
- /home/gennycat/PRSPLoginServer/extern/uWebSockets/src/WebSocketContext.h \
- /home/gennycat/PRSPLoginServer/src/conf.h \
- /home/gennycat/PRSPLoginServer/src/database.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/HttpResponse.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/Utilities.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/WebSocketExtensions.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/WebSocketHandshake.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/WebSocket.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/WebSocketContextData.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/WebSocketContext.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/src/conf.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/src/database.h \
  /usr/include/c++/15/variant /usr/include/c++/15/bits/monostate.h \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Driver.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/buildconf.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/SQLString.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Connection.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Savepoint.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/jdbccompat.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/CArray.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Struct.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Object.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Executor.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/DriverManager.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Driver.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Connection.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSet.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Warning.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/DatabaseMetaData.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSetMetaData.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Statement.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSet.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/PreparedStatement.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/ParameterMetaData.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Statement.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/ParameterMetaData.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/CallableStatement.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/PreparedStatement.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Warning.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Savepoint.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Types.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/SQLString.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Exception.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/jdbccompat.hpp \
- /home/gennycat/PRSPLoginServer/extern/nlohmann/json.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Driver.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/buildconf.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/SQLString.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Connection.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Savepoint.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/jdbccompat.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/CArray.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Struct.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Object.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Executor.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/DriverManager.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Driver.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Connection.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSet.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Warning.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/DatabaseMetaData.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSetMetaData.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Statement.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSet.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/PreparedStatement.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/ParameterMetaData.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Statement.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/ParameterMetaData.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/CallableStatement.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/PreparedStatement.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Warning.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Savepoint.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Types.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/SQLString.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Exception.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/jdbccompat.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/nlohmann/json.hpp \
  /usr/include/c++/15/iterator /usr/include/c++/15/bits/stream_iterator.h \
  /usr/include/c++/15/forward_list /usr/include/c++/15/bits/forward_list.h \
  /usr/include/c++/15/bits/forward_list.tcc /usr/include/c++/15/valarray \
@@ -326,4 +327,4 @@ CMakeFiles/prsp.dir/src/main.cpp.o: \
  /usr/include/c++/15/ranges /usr/include/c++/15/span \
  /usr/include/c++/15/numeric /usr/include/c++/15/bits/stl_numeric.h \
  /usr/include/c++/15/pstl/glue_numeric_defs.h /usr/include/c++/15/any \
- /home/gennycat/PRSPLoginServer/src/wsserver.h
+ /home/gennycat/Документы/GitHub/PRSPServer/src/wsserver.h

@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/g++
 CXX_DEFINES = -DUWS_WITH_SSL
 
-CXX_INCLUDES = -I/home/gennycat/PRSPLoginServer/extern/uWebSockets/src -I/home/gennycat/PRSPLoginServer/extern/uWebSockets/uSockets/src -I/home/gennycat/PRSPLoginServer/extern/mariadb-connector/include -I/home/gennycat/PRSPLoginServer/extern
+CXX_INCLUDES = -I/home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src -I/home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/uSockets/src -I/home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include -I/home/gennycat/Документы/GitHub/PRSPServer/extern
 
 CXX_FLAGS = -O3 -march=x86-64 -fstrict-aliasing -funroll-loops -flto -fno-rtti -DNDEBUG -std=gnu++20 -Wall -Wextra -Wpedantic
 

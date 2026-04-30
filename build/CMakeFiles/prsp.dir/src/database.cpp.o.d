@@ -1,6 +1,7 @@
 CMakeFiles/prsp.dir/src/database.cpp.o: \
- /home/gennycat/PRSPLoginServer/src/database.cpp \
- /usr/include/stdc-predef.h /home/gennycat/PRSPLoginServer/src/database.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/src/database.cpp \
+ /usr/include/stdc-predef.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/src/database.h \
  /usr/include/c++/15/iostream /usr/include/c++/15/bits/requires_hosted.h \
  /usr/include/c++/15/x86_64-redhat-linux/bits/c++config.h \
  /usr/include/bits/wordsize.h \
@@ -186,47 +187,47 @@ CMakeFiles/prsp.dir/src/database.cpp.o: \
  /usr/include/c++/15/bits/stl_map.h \
  /usr/include/c++/15/bits/stl_multimap.h \
  /usr/include/c++/15/bits/erase_if.h \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Driver.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/buildconf.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/SQLString.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Connection.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Savepoint.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/jdbccompat.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Driver.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/buildconf.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/SQLString.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Connection.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Savepoint.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/jdbccompat.hpp \
  /usr/include/c++/15/algorithm /usr/include/c++/15/bits/stl_algo.h \
  /usr/include/c++/15/bits/algorithmfwd.h \
  /usr/include/c++/15/bits/stl_heap.h \
  /usr/include/c++/15/bits/uniform_int_dist.h \
  /usr/include/c++/15/bits/ranges_algo.h \
  /usr/include/c++/15/pstl/glue_algorithm_defs.h \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/CArray.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Struct.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Object.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Executor.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/DriverManager.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Driver.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Connection.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSet.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Warning.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/DatabaseMetaData.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/CArray.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Struct.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Object.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/compat/Executor.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/DriverManager.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Driver.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Connection.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSet.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Warning.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/DatabaseMetaData.hpp \
  /usr/include/c++/15/list /usr/include/c++/15/bits/stl_list.h \
  /usr/include/c++/15/bits/list.tcc \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSetMetaData.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Statement.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSet.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/PreparedStatement.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/ParameterMetaData.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Statement.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/ParameterMetaData.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/CallableStatement.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/PreparedStatement.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Warning.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Savepoint.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Types.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/SQLString.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/Exception.hpp \
- /home/gennycat/PRSPLoginServer/extern/mariadb-connector/include/mariadb/conncpp/jdbccompat.hpp \
- /home/gennycat/PRSPLoginServer/extern/nlohmann/json.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSetMetaData.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Statement.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/ResultSet.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/PreparedStatement.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/ParameterMetaData.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Statement.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/ParameterMetaData.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/CallableStatement.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/PreparedStatement.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Warning.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Savepoint.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Types.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/SQLString.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Exception.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/jdbccompat.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/extern/nlohmann/json.hpp \
  /usr/include/c++/15/functional /usr/include/c++/15/bits/std_function.h \
  /usr/include/c++/15/unordered_map \
  /usr/include/c++/15/bits/unordered_map.h \

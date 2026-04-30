@@ -53,10 +53,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/gennycat/PRSPLoginServer
+CMAKE_SOURCE_DIR = /home/gennycat/Документы/GitHub/PRSPServer
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/gennycat/PRSPLoginServer/build
+CMAKE_BINARY_DIR = /home/gennycat/Документы/GitHub/PRSPServer/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/prsp.dir/depend.make
@@ -73,60 +73,60 @@ CMakeFiles/prsp.dir/codegen:
 .PHONY : CMakeFiles/prsp.dir/codegen
 
 CMakeFiles/prsp.dir/src/conf.cpp.o: CMakeFiles/prsp.dir/flags.make
-CMakeFiles/prsp.dir/src/conf.cpp.o: /home/gennycat/PRSPLoginServer/src/conf.cpp
+CMakeFiles/prsp.dir/src/conf.cpp.o: /home/gennycat/Документы/GitHub/PRSPServer/src/conf.cpp
 CMakeFiles/prsp.dir/src/conf.cpp.o: CMakeFiles/prsp.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/PRSPLoginServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/prsp.dir/src/conf.cpp.o"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/conf.cpp.o -MF CMakeFiles/prsp.dir/src/conf.cpp.o.d -o CMakeFiles/prsp.dir/src/conf.cpp.o -c /home/gennycat/PRSPLoginServer/src/conf.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/prsp.dir/src/conf.cpp.o"
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/conf.cpp.o -MF CMakeFiles/prsp.dir/src/conf.cpp.o.d -o CMakeFiles/prsp.dir/src/conf.cpp.o -c /home/gennycat/Документы/GitHub/PRSPServer/src/conf.cpp
 
 CMakeFiles/prsp.dir/src/conf.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/prsp.dir/src/conf.cpp.i"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/gennycat/PRSPLoginServer/src/conf.cpp > CMakeFiles/prsp.dir/src/conf.cpp.i
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/gennycat/Документы/GitHub/PRSPServer/src/conf.cpp > CMakeFiles/prsp.dir/src/conf.cpp.i
 
 CMakeFiles/prsp.dir/src/conf.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/prsp.dir/src/conf.cpp.s"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/gennycat/PRSPLoginServer/src/conf.cpp -o CMakeFiles/prsp.dir/src/conf.cpp.s
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/gennycat/Документы/GitHub/PRSPServer/src/conf.cpp -o CMakeFiles/prsp.dir/src/conf.cpp.s
 
 CMakeFiles/prsp.dir/src/database.cpp.o: CMakeFiles/prsp.dir/flags.make
-CMakeFiles/prsp.dir/src/database.cpp.o: /home/gennycat/PRSPLoginServer/src/database.cpp
+CMakeFiles/prsp.dir/src/database.cpp.o: /home/gennycat/Документы/GitHub/PRSPServer/src/database.cpp
 CMakeFiles/prsp.dir/src/database.cpp.o: CMakeFiles/prsp.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/PRSPLoginServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/prsp.dir/src/database.cpp.o"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/database.cpp.o -MF CMakeFiles/prsp.dir/src/database.cpp.o.d -o CMakeFiles/prsp.dir/src/database.cpp.o -c /home/gennycat/PRSPLoginServer/src/database.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/prsp.dir/src/database.cpp.o"
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/database.cpp.o -MF CMakeFiles/prsp.dir/src/database.cpp.o.d -o CMakeFiles/prsp.dir/src/database.cpp.o -c /home/gennycat/Документы/GitHub/PRSPServer/src/database.cpp
 
 CMakeFiles/prsp.dir/src/database.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/prsp.dir/src/database.cpp.i"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/gennycat/PRSPLoginServer/src/database.cpp > CMakeFiles/prsp.dir/src/database.cpp.i
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/gennycat/Документы/GitHub/PRSPServer/src/database.cpp > CMakeFiles/prsp.dir/src/database.cpp.i
 
 CMakeFiles/prsp.dir/src/database.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/prsp.dir/src/database.cpp.s"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/gennycat/PRSPLoginServer/src/database.cpp -o CMakeFiles/prsp.dir/src/database.cpp.s
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/gennycat/Документы/GitHub/PRSPServer/src/database.cpp -o CMakeFiles/prsp.dir/src/database.cpp.s
 
 CMakeFiles/prsp.dir/src/main.cpp.o: CMakeFiles/prsp.dir/flags.make
-CMakeFiles/prsp.dir/src/main.cpp.o: /home/gennycat/PRSPLoginServer/src/main.cpp
+CMakeFiles/prsp.dir/src/main.cpp.o: /home/gennycat/Документы/GitHub/PRSPServer/src/main.cpp
 CMakeFiles/prsp.dir/src/main.cpp.o: CMakeFiles/prsp.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/PRSPLoginServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/prsp.dir/src/main.cpp.o"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/main.cpp.o -MF CMakeFiles/prsp.dir/src/main.cpp.o.d -o CMakeFiles/prsp.dir/src/main.cpp.o -c /home/gennycat/PRSPLoginServer/src/main.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/prsp.dir/src/main.cpp.o"
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/main.cpp.o -MF CMakeFiles/prsp.dir/src/main.cpp.o.d -o CMakeFiles/prsp.dir/src/main.cpp.o -c /home/gennycat/Документы/GitHub/PRSPServer/src/main.cpp
 
 CMakeFiles/prsp.dir/src/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/prsp.dir/src/main.cpp.i"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/gennycat/PRSPLoginServer/src/main.cpp > CMakeFiles/prsp.dir/src/main.cpp.i
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/gennycat/Документы/GitHub/PRSPServer/src/main.cpp > CMakeFiles/prsp.dir/src/main.cpp.i
 
 CMakeFiles/prsp.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/prsp.dir/src/main.cpp.s"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/gennycat/PRSPLoginServer/src/main.cpp -o CMakeFiles/prsp.dir/src/main.cpp.s
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/gennycat/Документы/GitHub/PRSPServer/src/main.cpp -o CMakeFiles/prsp.dir/src/main.cpp.s
 
 CMakeFiles/prsp.dir/src/wsserver.cpp.o: CMakeFiles/prsp.dir/flags.make
-CMakeFiles/prsp.dir/src/wsserver.cpp.o: /home/gennycat/PRSPLoginServer/src/wsserver.cpp
+CMakeFiles/prsp.dir/src/wsserver.cpp.o: /home/gennycat/Документы/GitHub/PRSPServer/src/wsserver.cpp
 CMakeFiles/prsp.dir/src/wsserver.cpp.o: CMakeFiles/prsp.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/PRSPLoginServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/prsp.dir/src/wsserver.cpp.o"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/wsserver.cpp.o -MF CMakeFiles/prsp.dir/src/wsserver.cpp.o.d -o CMakeFiles/prsp.dir/src/wsserver.cpp.o -c /home/gennycat/PRSPLoginServer/src/wsserver.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/prsp.dir/src/wsserver.cpp.o"
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/wsserver.cpp.o -MF CMakeFiles/prsp.dir/src/wsserver.cpp.o.d -o CMakeFiles/prsp.dir/src/wsserver.cpp.o -c /home/gennycat/Документы/GitHub/PRSPServer/src/wsserver.cpp
 
 CMakeFiles/prsp.dir/src/wsserver.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/prsp.dir/src/wsserver.cpp.i"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/gennycat/PRSPLoginServer/src/wsserver.cpp > CMakeFiles/prsp.dir/src/wsserver.cpp.i
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/gennycat/Документы/GitHub/PRSPServer/src/wsserver.cpp > CMakeFiles/prsp.dir/src/wsserver.cpp.i
 
 CMakeFiles/prsp.dir/src/wsserver.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/prsp.dir/src/wsserver.cpp.s"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/gennycat/PRSPLoginServer/src/wsserver.cpp -o CMakeFiles/prsp.dir/src/wsserver.cpp.s
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/gennycat/Документы/GitHub/PRSPServer/src/wsserver.cpp -o CMakeFiles/prsp.dir/src/wsserver.cpp.s
 
 # Object files for target prsp
 prsp_OBJECTS = \
@@ -144,14 +144,14 @@ prsp: CMakeFiles/prsp.dir/src/main.cpp.o
 prsp: CMakeFiles/prsp.dir/src/wsserver.cpp.o
 prsp: CMakeFiles/prsp.dir/build.make
 prsp: CMakeFiles/prsp.dir/compiler_depend.ts
-prsp: /home/gennycat/PRSPLoginServer/extern/mariadb-connector/lib64/mariadb/libmariadbcpp.so
-prsp: /home/gennycat/PRSPLoginServer/extern/uWebSockets/uSockets/uSockets.a
+prsp: /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/lib64/mariadb/libmariadbcpp.so
+prsp: /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/uSockets/uSockets.a
 prsp: /usr/lib64/libuv.so
 prsp: /usr/lib64/libssl.so
 prsp: /usr/lib64/libcrypto.so
 prsp: /usr/lib64/libz.so
 prsp: CMakeFiles/prsp.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/gennycat/PRSPLoginServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable prsp"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable prsp"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/prsp.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -163,6 +163,6 @@ CMakeFiles/prsp.dir/clean:
 .PHONY : CMakeFiles/prsp.dir/clean
 
 CMakeFiles/prsp.dir/depend:
-	cd /home/gennycat/PRSPLoginServer/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/gennycat/PRSPLoginServer /home/gennycat/PRSPLoginServer /home/gennycat/PRSPLoginServer/build /home/gennycat/PRSPLoginServer/build /home/gennycat/PRSPLoginServer/build/CMakeFiles/prsp.dir/DependInfo.cmake "--color=$(COLOR)"
+	cd /home/gennycat/Документы/GitHub/PRSPServer/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/gennycat/Документы/GitHub/PRSPServer /home/gennycat/Документы/GitHub/PRSPServer /home/gennycat/Документы/GitHub/PRSPServer/build /home/gennycat/Документы/GitHub/PRSPServer/build /home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles/prsp.dir/DependInfo.cmake "--color=$(COLOR)"
 .PHONY : CMakeFiles/prsp.dir/depend
 

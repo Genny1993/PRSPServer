@@ -1,7 +1,8 @@
 CMakeFiles/prsp.dir/src/conf.cpp.o: \
- /home/gennycat/PRSPLoginServer/src/conf.cpp /usr/include/stdc-predef.h \
- /home/gennycat/PRSPLoginServer/src/conf.h /usr/include/c++/15/string \
- /usr/include/c++/15/bits/requires_hosted.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/src/conf.cpp \
+ /usr/include/stdc-predef.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/src/conf.h \
+ /usr/include/c++/15/string /usr/include/c++/15/bits/requires_hosted.h \
  /usr/include/c++/15/x86_64-redhat-linux/bits/c++config.h \
  /usr/include/bits/wordsize.h \
  /usr/include/c++/15/x86_64-redhat-linux/bits/os_defines.h \

@@ -1,2 +1,0 @@
-# PRSPServer
- Server for Messenger

@@ -1,0 +1,3 @@
+/home/gennycat/PRSPLoginServer/build/CMakeFiles/prsp.dir
+/home/gennycat/PRSPLoginServer/build/CMakeFiles/edit_cache.dir
+/home/gennycat/PRSPLoginServer/build/CMakeFiles/rebuild_cache.dir

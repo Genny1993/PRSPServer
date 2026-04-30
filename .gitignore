@@ -24,19 +24,6 @@ _CPack_Packages/
 build*/
 Debug/
 Release/
-*.o
-*.obj
-*.exe
-*.dll
-*.so
-*.dylib
-*.lib
-*.a
-*.pdb
-*.ilk
-*.exp
-*.suo
-*.user
 *.vcxproj*
 *.sln
 

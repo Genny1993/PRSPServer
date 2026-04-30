@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <input type="text" id="msg" placeholder="Message">
+    <input type="text" id="msg2" placeholder="Message">
+    <input type="text" id="msg3" placeholder="Message">
+    <button onclick="connect()">Connect</button>
+    <button onclick="sendEcho()">SendEcho</button>
+    <button onclick="sendRegistry()">SendRegistry</button>
+    <button onclick="sendLogin()">SendLogin</button>
+    <button onclick="sendLogout()">SendLogout</button>
+    <button onclick="sendIsAdmin()">SendIsAdmin</button>
+    <button onclick="sendChangePassword()">ChangePassword</button>
+    <button onclick="sendFindUsers()">FindUsers</button>
+    <button onclick="sendAddContact()">AddContact</button>
+    <button onclick="sendAcceptContact()">AcceptContact</button>
+    <button onclick="sendDeclineContact()">DeclineContact</button>
+    <button onclick="sendUndoAddContact()">UndoAddContact</button>
+    <button onclick="sendRemoveContact()">RemoveContact</button>
+    <button onclick="sendGetContacts()">GetContacts</button>
+    <button onclick="sendGetOutgoingRequests()">GetOutgoingRequests</button>
+    <button onclick="sendGetIncomingRequests()">GetIncomingRequests</button>
+    <button onclick="sendBroadcastOnline()">SendBroadcastOnline</button>
+    <button onclick="sendBroadcastOffline()">SendBroadcastOffline</button>
+    <button onclick="sendChangePseudonym()">SendChangePseudonym</button>
+    <button onclick="sendChangeStatus()">SendChangeStatus</button>
+    <button onclick="sendChangeAES()">SendChangeAES</button>
+    <button onclick="sendChangePasswordAdmin()">SendChangePasswordAdmin</button>
+    <button onclick="sendChangePseudonymAdmin()">SendChangePseudonymAdmin</button>
+    <button onclick="sendChangeStatusAdmin()">SendChangeStatusAdmin</button>
+    <div id="auth_key"></div>
+    <div id="log"></div>
+
+    <script>
+        let ws;
+        
+        function connect() {
+            ws = new WebSocket('ws://localhost:3000');
+            ws.onopen = () => log('Connected');
+            ws.onmessage = e => {
+                log('Server: ' + e.data);
+                const obj = JSON.parse(e.data);
+                if(obj.pack.action == 'login') {
+                    if(obj.status = 'OK') {
+                        document.getElementById('auth_key').innerHTML = obj.pack.auth_token;
+                        console.log(document.getElementById('auth_key').value);
+                    }
+                }
+            }
+            ws.onclose = () => log('Disconnected');
+        }
+        
+        function sendRegistry() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "register", "pack": {"password": "' + document.getElementById('msg').value + '", "pseudonym": "test"}}');
+            }
+        }
+
+        function sendEcho() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "echo", "pack": "' + document.getElementById('msg').value + '"}');
+            }
+        }
+
+        function sendLogin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "login", "pack": {"password": "' + document.getElementById('msg2').value + '", "UIN": "' + document.getElementById('msg').value + '"}}');
+            }
+        }
+
+        function sendLogout() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "logout", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '", "UIN": "' + document.getElementById('msg').value + '"}}');
+            }
+        }
+
+        function sendIsAdmin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "isAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '", "UIN": "' + document.getElementById('msg').value + '"}}');
+            }
+        }
+
+        function sendChangePassword() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "changePassword", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '", "old_password":"' + document.getElementById('msg2').value +
+                '", "new_password":"' + document.getElementById('msg3').value +
+                '"}}');
+            }
+        }
+
+        function sendFindUsers() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "findUsers", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '", "find_string":"' + document.getElementById('msg2').value +
+                '"}}');
+            }
+        }
+        
+        function sendAddContact() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "addContact", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '", "contact_uin":"' + document.getElementById('msg2').value +
+                '"}}');
+            }
+        }
+
+        function sendAcceptContact() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "acceptContact", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '", "contact_id":"' + document.getElementById('msg2').value +
+                '"}}');
+            }
+        }
+
+        function sendDeclineContact() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "declineContact", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '", "contact_id":"' + document.getElementById('msg2').value +
+                '"}}');
+            }
+        }
+
+        function sendUndoAddContact() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "undoAddContact", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '", "contact_id":"' + document.getElementById('msg2').value +
+                '"}}');
+            }
+        }
+
+        function sendRemoveContact() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "removeContact", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '", "contact_id":"' + document.getElementById('msg2').value +
+                '"}}');
+            }
+        }
+
+        function sendGetContacts() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "getContacts", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '"}}');
+            }
+        }
+
+        function sendGetOutgoingRequests() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "getOutgoingRequests", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '"}}');
+            }
+        }
+
+        function sendGetIncomingRequests() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "getIncomingRequests", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '"}}');
+            }
+        }
+
+        function sendBroadcastOnline() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "broadcastOnline", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '"}}');
+            }
+        }
+
+        function sendBroadcastOffline() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "broadcastOffline", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '"}}');
+            }
+        }
+
+        function sendChangePseudonym() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "changePseudonym", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '", "new_pseudonym": "' + document.getElementById('msg2').value + 
+                '"}}');
+            }
+        }
+
+        function sendChangeStatus() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "changeStatus", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '", "new_status": "' + document.getElementById('msg2').value + 
+                '"}}');
+            }
+        }
+
+        function sendChangeAES() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "changeAES", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value + 
+                '"}}');
+            }
+        }
+
+        function sendChangePasswordAdmin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "changePasswordAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_uin": "' + document.getElementById('msg2').value +
+                '", "new_password": "' + document.getElementById('msg3').value +
+                '"}}');
+            }
+        }
+
+        function sendChangePseudonymAdmin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "changePseudonymAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_uin": "' + document.getElementById('msg2').value +
+                '", "new_pseudonym": "' + document.getElementById('msg3').value +
+                '"}}');
+            }
+        }
+
+        function sendChangeStatusAdmin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "changeStatusAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_uin": "' + document.getElementById('msg2').value +
+                '", "new_status": "' + document.getElementById('msg3').value +
+                '"}}');
+            }
+        }
+        
+        function log(msg) {
+            document.getElementById('log').innerHTML += msg + '<br>';
+        }
+    </script>
+</body>
+</html>

@@ -1,11 +1,56 @@
-CMakeLists.txt.user
+gitignore
+
+# Visual Studio Code
+.vscode/
+.history/
+*.code-workspace
+
+# CMake
 CMakeCache.txt
-CMakeFiles
-CMakeScripts
-Testing
-Makefile
+CMakeFiles/
 cmake_install.cmake
-install_manifest.txt
-compile_commands.json
+Makefile
+CMakeUserPresets.json
+CMakePresets.json
+!CMakePresets.json.default
 CTestTestfile.cmake
-_deps
+_CPack_Packages/
+*.cmake
+!CMakeLists.txt
+!*.cmake.in
+!cmake/
+
+# Сборка и компиляция
+build*/
+Debug/
+Release/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.a
+*.pdb
+*.ilk
+*.exp
+*.suo
+*.user
+*.vcxproj*
+*.sln
+
+# IDE и редакторы
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Файлы логов и временные
+*.log
+*.tmp
+*.temp
+*.cache
+*.lock

@@ -47,7 +47,7 @@ bool verifyPassword(const std::string& pwd, const std::string& storedHash) {
     return ss.str() == originalHash;
 }
 
-bool verifyAuth(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int uin, const std::string token) {
+bool verifyAuth(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int uin, const std::string& token) {
     if(WsServer::authKeys.find(uin) != WsServer::authKeys.end()) {
         if(WsServer::authKeys[uin]["auth_key"] == token && WsServer::authKeys[uin]["is_active"] == "1") {
             return true;
@@ -125,4 +125,67 @@ bool verifyRole(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int u
         }
     }
     return false;
+}
+
+bool validatePasswordEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const std::string& p, std::string_view func_name) {
+    if(!validatePassword(p)) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол"},
+        };
+        Answer(ws, clientError, j);
+        std::cerr << "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool validatePseudonymEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const std::string& p, std::string_view func_name) {
+    if(!validatePseudonym(p)) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Отображаемое имя должно содержать не менее 6 символов и не более 50"},
+        };
+        Answer(ws, clientError, j);
+        std::cerr << "Отображаемое имя должно содержать не менее 1 символа и не более 50" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool VerifyAuthEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int uin, const std::string& ak, std::string_view func_name) {
+    if(!verifyAuth(ws, uin, ak)) {
+        json j = json{
+            {"action", func_name},
+            {"message", "У пользователя не хватает прав для совершения этого действия"},
+        };
+        Answer(ws, clientError, j);
+        return false;
+    }
+    return true;
+}
+
+bool VerifyRoleEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int uin, const std::vector<std::string>& roles, std::string_view func_name) {
+    if(!verifyRole(ws, uin, roles))
+    {
+        json j = json{
+            {"action", func_name},
+            {"message", "У пользователя не хватает прав для совершения этого действия"},
+        };
+        Answer(ws, clientError, j);
+        return false;
+    }
+    return true;
+}
+
+bool VerifyPasswordEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const std::string& p, const std::string& phash, std::string_view func_name) {
+    if(!verifyPassword(p, phash)) {
+        json j = json{
+            {"action", func_name},
+            {"message", "UIN или пароль неверный"},
+        };
+        Answer(ws, clientError, j);
+        return false;
+    }
+    return true;
 }

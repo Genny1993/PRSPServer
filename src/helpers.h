@@ -139,3 +139,35 @@ std::string generateAuthToken(long long int uin) {
     
     return result.str();
 }
+
+bool RequireField(WebSocketType* ws, const nlohmann::json& pack, std::string_view field, std::string_view func_name, std::string_view error_text) {
+    if(!pack.contains(field)) {
+        json j = json{
+            {"action", func_name},
+            {"message", error_text},
+        };
+        Answer(ws, clientError, j);
+        std::cerr << error_text << std::endl;
+        return false;
+    }
+    return true;
+}
+
+void ThrowSQLError(WebSocketType* ws, std::string_view func_name) {
+    json j = json{
+        {"action", func_name},
+        {"message", "Ошибка при подготовке SQL-запроса"},
+    };
+    Answer(ws, serverError, j);
+    std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+    return;
+}
+
+long long int getIntAnyway(nlohmann::json str) {
+    if (str.is_number()) {
+        return str.get<long long>();
+    } else if (str.is_string()) {
+        return std::stoll(str.get<std::string>());
+    }
+    return 0;
+}

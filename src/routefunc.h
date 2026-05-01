@@ -71,45 +71,12 @@ void Echo(WebSocketType* ws, const std::string_view message, const nlohmann::jso
 
 void Register(WebSocketType* ws, const nlohmann::json& pack) {
     
-    if(!pack.contains("password")) {
-        json j = json{
-            {"action", "register"},
-            {"message", "Нет передаваемого пароля password"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого пароля password" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "register";
+    if(!RequireField(ws, pack, "password", func_name, "Нет передаваемого пароля password")) return;
+    if(!RequireField(ws, pack, "pseudonym", func_name, "Нет отображаемого имени pseudonym")) return;
 
-    if(!pack.contains("pseudonym")) {
-        json j = json{
-            {"action", "register"},
-            {"message", "Нет отображаемого имени pseudonym"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет отображаемого имени pseudonym" << std::endl;
-        return;
-    }
-
-    if(!validatePassword(pack["password"])) {
-        json j = json{
-            {"action", "register"},
-            {"message", "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол" << std::endl;
-        return;
-    }
-
-    if(!validatePseudonym(pack["pseudonym"])) {
-        json j = json{
-            {"action", "register"},
-            {"message", "Отображаемое имя должно содержать не менее 6 символов и не более 50"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Отображаемое имя должно содержать не менее 1 символа и не более 50" << std::endl;
-        return;
-    }
+    if(!validatePasswordEnv(ws, pack["password"], func_name)) return;
+    if(!validatePseudonymEnv(ws, pack["pseudonym"], func_name)) return; 
 
     std::string password_hash = hashPassword(pack["password"]);
     std::string pseudonym = pack["pseudonym"];
@@ -144,51 +111,24 @@ void Register(WebSocketType* ws, const nlohmann::json& pack) {
         
         long long newId = Database::executeInsertAndGetId(params);
         json j = json{
-            {"action", "register"},
+            {"action", func_name},
             {"UIN", newId},
             {"aes", aes}
         };
         Answer(ws, ok, j);
         return;
     } else {
-        json j = json{
-            {"action", "register"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, ok, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, "func_name");
         return;
     }
 }
 
 void Login(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "login"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "login";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "password", func_name, "Нет передаваемого пароля password")) return;
 
-    if(!pack.contains("password")) {
-        json j = json{
-            {"action", "login"},
-            {"message", "Нет передаваемого пароля password"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого пароля password" << std::endl;
-        return;
-    }
-
-    long long uin = 0;
-
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
+    long long uin = getIntAnyway(pack["UIN"]);
 
     if (Database::prepareStatement("SELECT password_hash, auth_token, aes_encryption_key, roles, is_active, pseudonym, status FROM users WHERE UIN = ? AND is_active = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
@@ -200,124 +140,74 @@ void Login(WebSocketType* ws, const nlohmann::json& pack) {
 
         if(verifyUser.empty()) {
             json j = json{
-                {"action", "login"},
+                {"action", func_name},
                 {"message", "UIN или пароль неверный"},
             };
             Answer(ws, clientError, j);
             return;
+        }
+        
+        std::string passwordHash = verifyUser[0]["password_hash"].get<std::string>();
+        if(!VerifyPasswordEnv(ws, pack["password"], passwordHash, func_name)) return;
+                
+        std::string token = "";
+        //Достаем или генерируем токен авторизации
+        if (!verifyUser[0]["auth_token"].is_null() && verifyUser[0]["auth_token"].is_string()) {
+        
+            //Отдаем токен (и ключ шифрования)
+            std::string token = verifyUser[0]["auth_token"].get<std::string>();
+
+            //Добавляем сокет в общий пул
+            WsServer::addSocket(ws, token, verifyUser[0]["roles"], verifyUser[0]["aes_encryption_key"], verifyUser[0]["is_active"], uin, verifyUser[0]["pseudonym"], verifyUser[0]["status"]);
+
+            //Отправляем ответ
+            json j = json{
+                {"action", func_name},
+                {"auth_token", token},
+                {"aes", verifyUser[0]["aes_encryption_key"]},
+            };
+            Answer(ws, ok, j);
+            return;
         } else {
-            std::string passwordHash = verifyUser[0]["password_hash"].get<std::string>();
-            if(!verifyPassword(pack["password"], passwordHash)) {
-                json j = json{
-                    {"action", "login"},
-                    {"message", "UIN или пароль неверный"},
+            //Генерируем новый токен (и отдаем ключ шифрования)
+            std::string token = generateAuthToken(uin);
+
+            if (Database::prepareStatement("UPDATE users SET auth_token = ? WHERE UIN = ?")) {
+                std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                    token,
+                    uin
                 };
-                Answer(ws, clientError, j);
+
+                Database::executeUpdate(params);
+                            
+                //Добавляем сокет в общий пул
+                WsServer::addSocket(ws, token, verifyUser[0]["roles"], verifyUser[0]["aes_encryption_key"], verifyUser[0]["is_active"], uin, verifyUser[0]["pseudonym"], verifyUser[0]["status"]);
+
+                //Отправляем ответ
+                json j = json{
+                    {"action", func_name},
+                    {"auth_token", token},
+                    {"aes", verifyUser[0]["aes_encryption_key"]},
+                };
+                Answer(ws, ok, j);
                 return;
             } else {
-                std::string token = "";
-                //Достаем или генерируем токен авторизации
-                if (!verifyUser[0]["auth_token"].is_null() && verifyUser[0]["auth_token"].is_string())
-                {   //Отдаем токен (и ключ шифрования)
-                    std::string token = verifyUser[0]["auth_token"].get<std::string>();
-
-                    //Добавляем сокет в общий пул
-                    WsServer::addSocket(ws, token, verifyUser[0]["roles"], verifyUser[0]["aes_encryption_key"], verifyUser[0]["is_active"], uin, verifyUser[0]["pseudonym"], verifyUser[0]["status"]);
-
-                    //Отправляем ответ
-                    json j = json{
-                        {"action", "login"},
-                        {"auth_token", token},
-                        {"aes", verifyUser[0]["aes_encryption_key"]},
-                    };
-                    Answer(ws, ok, j);
-                    return;
-                } else {
-                    //Генерируем новый токен (и отдаем ключ шифрования)
-                    std::string token = generateAuthToken(uin);
-
-                    if (Database::prepareStatement("UPDATE users SET auth_token = ? WHERE UIN = ?")) {
-                        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                            token,
-                            uin
-                        };
-
-                        Database::executeUpdate(params);
-                        
-                        //Добавляем сокет в общий пул
-                         WsServer::addSocket(ws, token, verifyUser[0]["roles"], verifyUser[0]["aes_encryption_key"], verifyUser[0]["is_active"], uin, verifyUser[0]["pseudonym"], verifyUser[0]["status"]);
-
-                        //Отправляем ответ
-                        json j = json{
-                            {"action", "login"},
-                            {"auth_token", token},
-                            {"aes", verifyUser[0]["aes_encryption_key"]},
-                        };
-                        Answer(ws, ok, j);
-                        return;
-                    } else {
-                        json j = json{
-                            {"action", "login"},
-                            {"message", "Ошибка при подготовке SQL-запроса"},
-                        };
-                        Answer(ws, serverError, j);
-                        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
-                        return;
-                    }
-                }
-                
+                ThrowSQLError(ws, func_name);
+                return;
             }
         }
     } else {
-        json j = json{
-            {"action", "login"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 }
 
 void Logout(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "logout"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
-
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "logout"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "logout"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"user", "admin"}))
-    {
-        json j = json{
-            {"action", "logout"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
+    const std::string_view func_name = "logout";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
     if (Database::prepareStatement("UPDATE users SET auth_token = NULL WHERE UIN = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
@@ -326,7 +216,7 @@ void Logout(WebSocketType* ws, const nlohmann::json& pack) {
 
         Database::executeUpdate(params);
         json j = json{
-            {"action", "logout"},
+            {"action", func_name},
             {"message", "Вы вышли из системы"},
         };
         Answer(ws, ok, j);
@@ -338,58 +228,29 @@ void Logout(WebSocketType* ws, const nlohmann::json& pack) {
         });
         return;
     } else {
-        json j = json{
-            {"action", "logout"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
     return;
 }
 
 void IsAdmin(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "logout"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "isAdmin";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "logout"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "logout"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin"}))
+    if(!verifyRole(ws, getIntAnyway(pack["UIN"]), {"admin"}))
     {
         json j = json{
-            {"action", "isAdmin"},
+            {"action", func_name},
             {"message", "0"},
         };
         Answer(ws, ok, j);
         return;
     } else {
         json j = json{
-            {"action", "isAdmin"},
+            {"action", func_name},
             {"message", "1"},
         };
         Answer(ws, ok, j);
@@ -398,63 +259,16 @@ void IsAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void ChangePassword(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "changePassword";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "changePassword"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    if(!RequireField(ws, pack, "old_password", func_name, "Нет передаваемого пароля old_password")) return;
+    if(!RequireField(ws, pack, "new_password", func_name, "Нет передаваемого пароля new_password")) return;
 
-    if(!pack.contains("old_password")) {
-        json j = json{
-            {"action", "changePassword"},
-            {"message", "Нет передаваемого пароля old_password"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого пароля old_password" << std::endl;
-        return;
-    }
-
-    if(!pack.contains("new_password")) {
-        json j = json{
-            {"action", "changePassword"},
-            {"message", "Нет передаваемого пароля new_password"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого пароля new_password" << std::endl;
-        return;
-    }
-
-    long long uin = 0;
-
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "changePassword"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "changePassword"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
+    long long uin = getIntAnyway(pack["UIN"]);
 
     json verifyUser = json{};
 
@@ -468,42 +282,22 @@ void ChangePassword(WebSocketType* ws, const nlohmann::json& pack) {
 
         if(verifyUser.empty()) {
             json j = json{
-                {"action", "changePassword"},
+                {"action", func_name},
                 {"message", "UIN или пароль неверный"},
             };
             Answer(ws, clientError, j);
             return;
         }
     } else {
-        json j = json{
-            {"action", "changePassword"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 
     std::string passwordHash = verifyUser[0]["password_hash"].get<std::string>();
 
-    if(!verifyPassword(pack["old_password"], passwordHash)) {
-        json j = json{
-            {"action", "changePassword"},
-            {"message", "UIN или пароль неверный"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
+    if(!VerifyPasswordEnv(ws, pack["old_password"], passwordHash, func_name)) return;
 
-    if(!validatePassword(pack["new_password"])) {
-        json j = json{
-            {"action", "changePassword"},
-            {"message", "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол" << std::endl;
-        return;
-    }
+    if(!validatePasswordEnv(ws, pack["new_password"], func_name)) return;
 
     std::string newPasswordHash = hashPassword(pack["new_password"]);
 
@@ -515,18 +309,13 @@ void ChangePassword(WebSocketType* ws, const nlohmann::json& pack) {
 
         Database::executeUpdate(params);
         json j = json{
-            {"action", "changePassword"},
+            {"action", func_name},
             {"message", "Вы сменили пароль"},
         };
         Answer(ws, ok, j);
         return;
     } else {
-        json j = json{
-            {"action", "changePassword"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 
@@ -534,58 +323,16 @@ void ChangePassword(WebSocketType* ws, const nlohmann::json& pack) {
 
 void FindUsers(WebSocketType* ws, const nlohmann::json& pack) {
 
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "findUsers"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "findUsers";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "findUsers"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "findUsers"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "findUsers"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
-    if(!pack.contains("find_string")) {
-        json j = json{
-            {"action", "findUsers"},
-            {"message", "Нет передаваемой строки поиска"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемой строки поиска" << std::endl;
-        return;
-    }
-
+    if(!RequireField(ws, pack, "find_string", func_name, "Нет передаваемой строки поиска")) return;
     if(pack["find_string"].get<std::string>().length() < 3 ) {
         json j = json{
-            {"action", "findUsers"},
+            {"action", func_name},
             {"message", "Строка поиска не должна быть менее 3 символов"},
         };
         Answer(ws, clientError, j);
@@ -603,82 +350,30 @@ void FindUsers(WebSocketType* ws, const nlohmann::json& pack) {
         json findUsers = Database::executeSelect(params);
 
         json j = json{
-            {"action", "findUsers"},
+            {"action", func_name},
             {"users", findUsers}
         };
         Answer(ws, ok, j);
         return;
 
     } else {
-        json j = json{
-            {"action", "findUsers"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 
 }
 
 void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "addContact"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "addContact"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "addContact";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "addContact"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
+    if(!RequireField(ws, pack, "contact_uin", func_name, "Нет передаваемого UIN нового контакта")) return;
 
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "addContact"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
-
-    if(!pack.contains("contact_uin")) {
-        json j = json{
-            {"action", "addContact"},
-            {"message", "Нет передаваемого UIN нового контакта"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN нового контакта" << std::endl;
-        return;
-    }
-
-    long long uin = 0;
-
-    if (pack["contact_uin"].is_number()) {
-        uin = pack["contact_uin"].get<long long>();
-    } else if (pack["contact_uin"].is_string()) {
-        uin = std::stoll(pack["contact_uin"].get<std::string>());
-    }
+    long long uin = getIntAnyway(pack["contact_uin"]);
 
     std::string pseudonym = "";
     std::string status = "";
@@ -695,7 +390,7 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
 
         if(User.empty()) {
             json j = json{
-                {"action", "addContact"},
+                {"action", func_name},
                 {"message", "Пользователь не существует"},
             };
             Answer(ws, clientError, j);
@@ -705,12 +400,7 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
         pseudonym = User[0]["pseudonym"].get<std::string>();
         status = User[0]["status"].get<std::string>();
     } else {
-        json j = json{
-            {"action", "addContact"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }    
 
@@ -718,7 +408,7 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
     json Contact = json{};
     if (Database::prepareStatement("SELECT id FROM contacts WHERE initiator_uin = ? AND destination_uin = ? AND is_chat = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            std::stoll(pack["UIN"].get<std::string>()),
+            getIntAnyway(pack["UIN"]),
             uin,
             false
         };
@@ -727,7 +417,7 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
 
         if(!Contact.empty()) {
             json j = json{
-                {"action", "addContact"},
+                {"action", func_name},
                 {"message", "Контакт уже существует"},
             };
             Answer(ws, clientError, j);
@@ -737,19 +427,14 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
         pseudonym = User[0]["pseudonym"].get<std::string>();
         status = User[0]["status"].get<std::string>();
     } else {
-        json j = json{
-            {"action", "addContact"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }    
 
     //Добавляем в контакты
     if (Database::prepareStatement("INSERT INTO contacts (initiator_uin, destination_uin, is_chat, is_approved) VALUES (?, ?, ?, ?)")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            std::stoll(pack["UIN"].get<std::string>()),
+            getIntAnyway(pack["UIN"]),
             uin,
             false,
             false
@@ -759,7 +444,7 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
 
         //Отправляем новый запрос в друзья инициатору
         json j = json{
-            {"action", "newContactSender"},
+            {"action", std::string(func_name) + "Sender"},
             {"id", newID},
             {"UIN", uin},
             {"pseudonym", pseudonym},
@@ -772,9 +457,9 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
         std::string sender_status = WsServer::authKeys[std::stoll(pack["UIN"].get<std::string>())]["status"];
         if (WsServer::authorizedSockets.find(uin) != WsServer::authorizedSockets.end()) {
             json j = json{
-                {"action", "newContactReciever"},
+                {"action", std::string(func_name) + "Reciever"},
                 {"id", newID},
-                {"UIN", std::stoll(pack["UIN"].get<std::string>())},
+                {"UIN", getIntAnyway(pack["UIN"])},
                 {"pseudonym", sender_pseudonym},
                 {"status", sender_status}
             };
@@ -782,73 +467,27 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
         }
         return;
     } else {
-        json j = json{
-            {"action", "addContact"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, ok, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 }
 
 void AcceptContact(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "acceptContact"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "acceptContact";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "acceptContact"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "acceptContact"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "acceptContact"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
-    if(!pack.contains("contact_id")) {
-        json j = json{
-            {"action", "acceptContact"},
-            {"message", "Нет id контакта"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет id контакта" << std::endl;
-        return;
-    }
+    if(!RequireField(ws, pack, "contact_id", func_name, "Нет id контакта")) return;
 
     long long int initiator_uin = 0;
     //проверяем, есть ли такой контакт
     json Contact = json{};
     if (Database::prepareStatement("SELECT id, initiator_uin FROM contacts WHERE id = ? AND destination_uin = ? AND is_approved = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            std::stoll(pack["contact_id"].get<std::string>()),
-            std::stoll(pack["UIN"].get<std::string>()),
+            getIntAnyway(pack["contact_id"]),
+            getIntAnyway(pack["UIN"]),
             false
         };
 
@@ -856,28 +495,23 @@ void AcceptContact(WebSocketType* ws, const nlohmann::json& pack) {
 
         if(Contact.empty()) {
             json j = json{
-                {"action", "acceptContact"},
+                {"action", func_name},
                 {"message", "Контакт не существует"},
             };
             Answer(ws, clientError, j);
             return;
         } else {
-            initiator_uin = Contact[0]["initiator_uin"].get<long long int>();
+            initiator_uin = getIntAnyway(Contact[0]["initiator_uin"]);
         }
     } else {
-        json j = json{
-            {"action", "acceptContact"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }   
     
     if (Database::prepareStatement("UPDATE contacts SET is_approved = ? WHERE id = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
             true,
-            std::stoll(pack["contact_id"].get<std::string>())
+            getIntAnyway(pack["contact_id"])
         };
 
         Database::executeUpdate(params);
@@ -896,7 +530,7 @@ void AcceptContact(WebSocketType* ws, const nlohmann::json& pack) {
 
             if(Contact.empty()) {
                 json j = json{
-                    {"action", "acceptContact"},
+                    {"action", func_name},
                     {"message", "Контакт не существует"},
                 };
                 Answer(ws, clientError, j);
@@ -906,12 +540,7 @@ void AcceptContact(WebSocketType* ws, const nlohmann::json& pack) {
                 status = Contact[0]["status"].get<std::string>();
             }
         } else {
-            json j = json{
-                {"action", "acceptContact"},
-                {"message", "Ошибка при подготовке SQL-запроса"},
-            };
-            Answer(ws, serverError, j);
-            std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+            ThrowSQLError(ws, func_name);
             return;
         }   
 
@@ -921,8 +550,8 @@ void AcceptContact(WebSocketType* ws, const nlohmann::json& pack) {
         }
 
         json j = json{
-            {"action", "acceptContactSender"},
-            {"accepted_contact", std::stoll(pack["contact_id"].get<std::string>())},
+            {"action", std::string(func_name) + "Sender"},
+            {"accepted_contact", getIntAnyway(pack["contact_id"])},
             {"initiator_uin", initiator_uin},
             {"pseudonym", pseudonym},
             {"status", status},
@@ -933,85 +562,39 @@ void AcceptContact(WebSocketType* ws, const nlohmann::json& pack) {
         //Отправляем ответ инициатору, если он в сети
         if (WsServer::authorizedSockets.find(initiator_uin) != WsServer::authorizedSockets.end()) {
             json j = json{
-                {"action", "acceptContactReciever"},
-                {"accepted_contact", std::stoll(pack["contact_id"].get<std::string>())},
-                {"accepter_uin", std::stoll(pack["UIN"].get<std::string>())},
-                {"pseudonym", WsServer::authKeys[std::stoll(pack["UIN"].get<std::string>())]["pseudonym"]},
-                {"status", WsServer::authKeys[std::stoll(pack["UIN"].get<std::string>())]["status"]},
+                {"action", std::string(func_name) + "Reciever"},
+                {"accepted_contact", getIntAnyway(pack["contact_id"])},
+                {"accepter_uin", getIntAnyway(pack["UIN"])},
+                {"pseudonym", WsServer::authKeys[getIntAnyway(pack["UIN"])]["pseudonym"]},
+                {"status", WsServer::authKeys[getIntAnyway(pack["UIN"])]["status"]},
                 {"is_online", true}
             };
             Answer(WsServer::authorizedSockets[initiator_uin], ok, j);
         }
         return;
     } else {
-        json j = json{
-            {"action", "acceptContact"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
     
 }
 
 void DeclineContact(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "declineContact"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "declineContact";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "declineContact"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "declineContact"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "declineContact"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
-    if(!pack.contains("contact_id")) {
-        json j = json{
-            {"action", "declineContact"},
-            {"message", "Нет id контакта"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет id контакта" << std::endl;
-        return;
-    }
+    if(!RequireField(ws, pack, "contact_id", func_name, "Нет id контакта")) return;
 
     long long int initiator_uin = 0;
     //проверяем, есть ли такой контакт
     json Contact = json{};
     if (Database::prepareStatement("SELECT id, initiator_uin FROM contacts WHERE id = ? AND destination_uin = ? AND is_approved = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            std::stoll(pack["contact_id"].get<std::string>()),
-            std::stoll(pack["UIN"].get<std::string>()),
+            getIntAnyway(pack["contact_id"]),
+            getIntAnyway(pack["UIN"]),
             false
         };
 
@@ -1019,28 +602,23 @@ void DeclineContact(WebSocketType* ws, const nlohmann::json& pack) {
 
         if(Contact.empty()) {
             json j = json{
-                {"action", "declineContact"},
+                {"action", func_name},
                 {"message", "Контакт не существует"},
             };
             Answer(ws, clientError, j);
             return;
         } else {
-            initiator_uin = Contact[0]["initiator_uin"].get<long long int>();
+            initiator_uin = getIntAnyway(Contact[0]["initiator_uin"]);
         }
     } else {
-        json j = json{
-            {"action", "declineContact"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 
     //Удаляем контакт
     if (Database::prepareStatement("DELETE FROM contacts WHERE id = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            std::stoll(pack["contact_id"].get<std::string>())
+            getIntAnyway(pack["contact_id"])
         };
 
         Database::executeUpdate(params);
@@ -1048,8 +626,8 @@ void DeclineContact(WebSocketType* ws, const nlohmann::json& pack) {
       
         //Отправляем ответ клиенту
         json j = json{
-            {"action", "declineContactSender"},
-            {"declined_contact", std::stoll(pack["contact_id"].get<std::string>())},
+            {"action", std::string(func_name) + "Sender"},
+            {"declined_contact", getIntAnyway(pack["contact_id"])},
             {"initiator_uin", initiator_uin}
         };
         Answer(ws, ok, j);
@@ -1057,81 +635,35 @@ void DeclineContact(WebSocketType* ws, const nlohmann::json& pack) {
         //Отправляем ответ инициатору, если он в сети
         if (WsServer::authorizedSockets.find(initiator_uin) != WsServer::authorizedSockets.end()) {
             json j = json{
-                {"action", "declineContactReciever"},
-                {"declined_contact", std::stoll(pack["contact_id"].get<std::string>())},
-                {"accepter_uin", std::stoll(pack["UIN"].get<std::string>())},
+                {"action", std::string(func_name) + "Reciever"},
+                {"declined_contact", getIntAnyway(pack["contact_id"])},
+                {"accepter_uin", getIntAnyway(pack["UIN"])},
             };
             Answer(WsServer::authorizedSockets[initiator_uin], ok, j);
         }
         return;
     } else {
-        json j = json{
-            {"action", "declineContact"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 }
 
 void UndoAddContact(WebSocketType* ws, const nlohmann::json& pack) {
-        if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "undoAddContact"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "undoAddContact";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "undoAddContact"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "undoAddContact"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "undoAddContact"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
-    if(!pack.contains("contact_id")) {
-        json j = json{
-            {"action", "undoAddContact"},
-            {"message", "Нет id контакта"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет id контакта" << std::endl;
-        return;
-    }
+    if(!RequireField(ws, pack, "contact_id", func_name, "Нет id контакта")) return;
 
     long long int destination_uin = 0;
     //проверяем, есть ли такой контакт
     json Contact = json{};
     if (Database::prepareStatement("SELECT id, destination_uin FROM contacts WHERE id = ? AND initiator_uin = ? AND is_approved = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            std::stoll(pack["contact_id"].get<std::string>()),
-            std::stoll(pack["UIN"].get<std::string>()),
+            getIntAnyway(pack["contact_id"]),
+            getIntAnyway(pack["UIN"]),
             false
         };
 
@@ -1139,28 +671,23 @@ void UndoAddContact(WebSocketType* ws, const nlohmann::json& pack) {
 
         if(Contact.empty()) {
             json j = json{
-                {"action", "undoAddContact"},
+                {"action", func_name},
                 {"message", "Контакт не существует"},
             };
             Answer(ws, clientError, j);
             return;
         } else {
-            destination_uin = Contact[0]["destination_uin"].get<long long int>();
+            destination_uin = getIntAnyway(Contact[0]["destination_uin"]);
         }
     } else {
-        json j = json{
-            {"action", "undoAddContact"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 
     //Удаляем контакт
     if (Database::prepareStatement("DELETE FROM contacts WHERE id = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            std::stoll(pack["contact_id"].get<std::string>())
+            getIntAnyway(pack["contact_id"])
         };
 
         Database::executeUpdate(params);
@@ -1168,8 +695,8 @@ void UndoAddContact(WebSocketType* ws, const nlohmann::json& pack) {
       
         //Отправляем ответ клиенту
         json j = json{
-            {"action", "undoAddContactSender"},
-            {"undoed_contact", std::stoll(pack["contact_id"].get<std::string>())},
+            {"action", std::string(func_name) + "Sender"},
+            {"undoed_contact", getIntAnyway(pack["contact_id"])},
             {"destination_uin", destination_uin}
         };
         Answer(ws, ok, j);
@@ -1177,73 +704,28 @@ void UndoAddContact(WebSocketType* ws, const nlohmann::json& pack) {
         //Отправляем ответ клиенту назначения, если он в сети
         if (WsServer::authorizedSockets.find(destination_uin) != WsServer::authorizedSockets.end()) {
             json j = json{
-                {"action", "undoAddContactReciever"},
-                {"undoed_contact", std::stoll(pack["contact_id"].get<std::string>())},
-                {"accepter_uin", std::stoll(pack["UIN"].get<std::string>())},
+                {"action", std::string(func_name) + "Reciever"},
+                {"undoed_contact", getIntAnyway(pack["contact_id"])},
+                {"accepter_uin", getIntAnyway(pack["UIN"])},
             };
             Answer(WsServer::authorizedSockets[destination_uin], ok, j);
         }
         return;
     } else {
-        json j = json{
-            {"action", "undoAddContact"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 }
 
 void RemoveContact(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "removeContact"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    
+    const std::string_view func_name = "removeContact";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "removeContact"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "removeContact"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "removeContact"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
-    if(!pack.contains("contact_id")) {
-        json j = json{
-            {"action", "removeContact"},
-            {"message", "Нет id контакта"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет id контакта" << std::endl;
-        return;
-    }
+    if(!RequireField(ws, pack, "contact_id", func_name, "Нет id контакта")) return;
 
     long long int destination_uin = 0;
     long long int initiator_uin = 0;
@@ -1251,9 +733,9 @@ void RemoveContact(WebSocketType* ws, const nlohmann::json& pack) {
     json Contact = json{};
     if (Database::prepareStatement("SELECT id, initiator_uin, destination_uin FROM contacts WHERE id = ? AND (initiator_uin = ? OR destination_uin = ?) AND is_approved = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            std::stoll(pack["contact_id"].get<std::string>()),
-            std::stoll(pack["UIN"].get<std::string>()),
-            std::stoll(pack["UIN"].get<std::string>()),
+            getIntAnyway(pack["contact_id"]),
+            getIntAnyway(pack["UIN"]),
+            getIntAnyway(pack["UIN"]),
             true
         };
 
@@ -1261,29 +743,24 @@ void RemoveContact(WebSocketType* ws, const nlohmann::json& pack) {
 
         if(Contact.empty()) {
             json j = json{
-                {"action", "removeContact"},
+                {"action", func_name},
                 {"message", "Контакт не существует"},
             };
             Answer(ws, clientError, j);
             return;
         } else {
-            destination_uin = Contact[0]["destination_uin"].get<long long int>();
-            initiator_uin = Contact[0]["initiator_uin"].get<long long int>();
+            destination_uin = getIntAnyway(Contact[0]["destination_uin"]);
+            initiator_uin = getIntAnyway(Contact[0]["initiator_uin"]);
         }
     } else {
-        json j = json{
-            {"action", "removeContact"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 
     //Удаляем контакт
     if (Database::prepareStatement("DELETE FROM contacts WHERE id = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            std::stoll(pack["contact_id"].get<std::string>())
+            getIntAnyway(pack["contact_id"])
         };
 
         Database::executeUpdate(params);
@@ -1292,8 +769,8 @@ void RemoveContact(WebSocketType* ws, const nlohmann::json& pack) {
         //Отправляем ответ клиенту инициатору, если он в сети
         if (WsServer::authorizedSockets.find(initiator_uin) != WsServer::authorizedSockets.end()) {
             json j = json{
-                {"action", "removeContact"},
-                {"removed_contact", std::stoll(pack["contact_id"].get<std::string>())},
+                {"action", func_name},
+                {"removed_contact", getIntAnyway(pack["contact_id"])},
             };
             Answer(WsServer::authorizedSockets[initiator_uin], ok, j);
         }
@@ -1301,73 +778,29 @@ void RemoveContact(WebSocketType* ws, const nlohmann::json& pack) {
         //Отправляем ответ клиенту назначения, если он в сети
         if (WsServer::authorizedSockets.find(destination_uin) != WsServer::authorizedSockets.end()) {
             json j = json{
-                {"action", "removeContact"},
-                {"removed_contact", std::stoll(pack["contact_id"].get<std::string>())},
+                {"action", func_name},
+                {"removed_contact", getIntAnyway(pack["contact_id"])},
             };
             Answer(WsServer::authorizedSockets[destination_uin], ok, j);
         }
         return;
     } else {
-        json j = json{
-            {"action", "removeContact"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 }
 
 void GetContacts(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "getContacts"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "getContacts";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "getContacts"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "getContacts"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "getContacts"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
-    long long int uin = 0;
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
+    long long int uin = getIntAnyway(pack["UIN"]);
 
     json Contacts = json{};
       if (Database::prepareStatement("SELECT c.id, CASE WHEN c.initiator_uin = ? THEN c.destination_uin ELSE c.initiator_uin END AS UIN, CASE WHEN c.initiator_uin = ? THEN dest_user.pseudonym ELSE init_user.pseudonym END AS pseudonym, CASE WHEN c.initiator_uin = ? THEN 'initiator' ELSE 'destination' END AS my_role, CASE WHEN c.initiator_uin = ? THEN dest_user.status ELSE init_user.status END AS status, CASE WHEN c.initiator_uin = ? THEN dest_user.is_active ELSE init_user.is_active END AS is_active, c.is_approved FROM contacts c LEFT JOIN users init_user ON c.initiator_uin = init_user.UIN LEFT JOIN users dest_user ON c.destination_uin = dest_user.UIN WHERE (c.initiator_uin = ? OR c.destination_uin = ?) AND c.is_approved = ?")) {
-    //if (Database::prepareStatement("SELECT c.id, u.UIN, u.pseudonym, u.status, u.is_active FROM contacts AS c LEFT JOIN users AS u ON c.destination_uin = u.UIN WHERE (initiator_uin = ? OR destination_uin = ?) AND is_approved = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
             uin,
             uin,
@@ -1383,7 +816,7 @@ void GetContacts(WebSocketType* ws, const nlohmann::json& pack) {
 
         for (auto& item : Contacts) {
             if (item.is_object()) {
-                long long int uin = item["UIN"].get<long long int>();
+                long long int uin =  getIntAnyway(item["UIN"]);
                 if (WsServer::authorizedSockets.find(uin) != WsServer::authorizedSockets.end()) {
                     item["online"] = true;
                 } else {
@@ -1394,68 +827,25 @@ void GetContacts(WebSocketType* ws, const nlohmann::json& pack) {
 
         //Отправляем ответ клиенту
         json j = json{
-            {"action", "getContacts"},
+            {"action", func_name},
             {"contacts", Contacts},
         };
         Answer(ws, ok, j);
         return;
     } else {
-        json j = json{
-            {"action", "getContacts"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 }
 
 void GetOutgoingRequests(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "getOutgoingRequests"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "getOutgoingRequests";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "getOutgoingRequests"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "getOutgoingRequests"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "getOutgoingRequests"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
-    long long int uin = 0;
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
+    long long int uin = getIntAnyway(pack["UIN"]);
 
     json Contacts = json{};
     if (Database::prepareStatement("SELECT c.id, u.UIN, u.pseudonym, u.status, u.is_active FROM contacts AS c LEFT JOIN users AS u ON c.destination_uin = u.UIN WHERE initiator_uin = ? AND is_approved = ?")) {
@@ -1468,68 +858,25 @@ void GetOutgoingRequests(WebSocketType* ws, const nlohmann::json& pack) {
 
         //Отправляем ответ клиенту
         json j = json{
-            {"action", "getOutgoingRequests"},
+            {"action", func_name},
             {"contacts", Contacts},
         };
         Answer(ws, ok, j);
         return;
     } else {
-        json j = json{
-            {"action", "getOutgoingRequests"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 }
 
 void GetIncomingRequests(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "getIncomingRequests"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "getIncomingRequests";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "getIncomingRequests"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "getIncomingRequests"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "getIncomingRequests"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
-    long long int uin = 0;
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
+    long long int uin = getIntAnyway(pack["UIN"]);
 
     json Contacts = json{};
     if (Database::prepareStatement("SELECT c.id, u.UIN, u.pseudonym, u.status, u.is_active FROM contacts AS c LEFT JOIN users AS u ON c.initiator_uin = u.UIN WHERE destination_uin = ? AND is_approved = ?")) {
@@ -1542,74 +889,31 @@ void GetIncomingRequests(WebSocketType* ws, const nlohmann::json& pack) {
 
         //Отправляем ответ клиенту
         json j = json{
-            {"action", "getIncomingRequests"},
+            {"action", func_name},
             {"contacts", Contacts},
         };
         Answer(ws, ok, j);
         return;
     } else {
-        json j = json{
-            {"action", "getIncomingRequests"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 
 }
 
 void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack) {
-    
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "broadcastOnline"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "broadcastOnline";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
-    long long int uin = 0;
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
+    long long int uin = getIntAnyway(pack["UIN"]);
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "broadcastOnline"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, uin, pack["auth_key"])) {
-        json j = json{
-            {"action", "broadcastOnline"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, uin, {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "broadcastOnline"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"user", "admin"}, func_name)) return;
 
 
     json j = json{
-        {"action", "broadcastOnline"},
+        {"action", func_name},
         {"UIN", uin}
     };
 
@@ -1619,55 +923,17 @@ void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack) {
 
 void BroadcastOffline(WebSocketType* ws, const nlohmann::json& pack) {
     
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "broadcastOffline"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "broadcastOffline";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
-    long long int uin = 0;
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
+    long long int uin = getIntAnyway(pack["UIN"]);
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "broadcastOffline"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, uin, pack["auth_key"])) {
-        json j = json{
-            {"action", "broadcastOffline"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, uin, {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "broadcastOffline"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"user", "admin"}, func_name)) return;
 
     json j = json{
-        {"action", "broadcastOffline"},
+        {"action", func_name},
         {"UIN", uin}
     };
 
@@ -1676,61 +942,16 @@ void BroadcastOffline(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void ChangePseudonym(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "changePseudonym"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "changePseudonym";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
-    long long int uin = 0;
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
+    long long int uin = getIntAnyway(pack["UIN"]);
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "changePseudonym"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"user", "admin"}, func_name)) return;
 
-    if(!verifyAuth(ws, uin, pack["auth_key"])) {
-        json j = json{
-            {"action", "changePseudonym"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, uin, {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "changePseudonym"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
-    if(!pack.contains("new_pseudonym")) {
-        json j = json{
-            {"action", "changePseudonym"},
-            {"message", "Нет передаваемого new_pseudonym"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого new_pseudonym" << std::endl;
-        return;
-    }
+    if(!RequireField(ws, pack, "new_pseudonym", func_name, "Нет передаваемого new_pseudonym")) return;
 
     if (Database::prepareStatement("UPDATE users SET pseudonym = ? WHERE UIN = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
@@ -1741,86 +962,36 @@ void ChangePseudonym(WebSocketType* ws, const nlohmann::json& pack) {
         Database::executeUpdate(params);
         WsServer::authKeys[uin]["pseudonym"] = pack["new_pseudonym"].get<std::string>();
         json j = json{
-            {"action", "changePseudonym"},
+            {"action", func_name},
             {"message", "Вы сменили псевдоним!"},
         };
         Answer(ws, ok, j);
         
         json broadcast = json{
-            {"action", "broadcastChangePseudonym"},
+            {"action", "broadcast" + std::string(func_name) },
             {"UIN", uin},
             {"pseudonym", pack["new_pseudonym"].get<std::string>()}
         };
         ContactsBroadcast(uin, ok, broadcast);
         return;
     } else {
-        json j = json{
-            {"action", "changePseudonym"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
     return;
 }
 
 void ChangeStatus(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "changeStatus"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "changeStatus";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
-    long long int uin = 0;
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
+    long long int uin = getIntAnyway(pack["UIN"]);
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "changeStatus"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"user", "admin"}, func_name)) return;
 
-    if(!verifyAuth(ws, uin, pack["auth_key"])) {
-        json j = json{
-            {"action", "changeStatus"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, uin, {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "changeStatus"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
-    if(!pack.contains("new_status")) {
-        json j = json{
-            {"action", "changeStatus"},
-            {"message", "Нет передаваемого new_pseudonym"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого new_status" << std::endl;
-        return;
-    }
+    if(!RequireField(ws, pack, "new_status", func_name, "Нет передаваемого new_status")) return;
 
     if (Database::prepareStatement("UPDATE users SET status = ? WHERE UIN = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
@@ -1831,76 +1002,34 @@ void ChangeStatus(WebSocketType* ws, const nlohmann::json& pack) {
         Database::executeUpdate(params);
         WsServer::authKeys[uin]["status"] = pack["new_status"].get<std::string>();
         json j = json{
-            {"action", "changeStatus"},
+            {"action", func_name},
             {"message", "Вы сменили статус!"},
         };
         Answer(ws, ok, j);
         
         json broadcast = json{
-            {"action", "broadcastChangeStatus"},
+            {"action", "broadcast" + std::string(func_name)},
             {"UIN", uin},
             {"status", pack["new_status"].get<std::string>()}
         };
         ContactsBroadcast(uin, ok, broadcast);
         return;
     } else {
-        json j = json{
-            {"action", "changeStatus"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
     return;
 }
 
 void ChangeAES(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "changeAES"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "changeAES";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
-    long long int uin = 0;
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
+    long long int uin = getIntAnyway(pack["UIN"]);
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "changeAES"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, uin, pack["auth_key"])) {
-        json j = json{
-            {"action", "changeAES"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, uin, {"admin", "user"}))
-    {
-        json j = json{
-            {"action", "changeAES"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"user", "admin"}, func_name)) return;
 
     //Генерируем новый AES
     std::string new_aes = generateAES();
@@ -1914,18 +1043,13 @@ void ChangeAES(WebSocketType* ws, const nlohmann::json& pack) {
         Database::executeUpdate(params);
         WsServer::authKeys[uin]["aes"] = new_aes;
         json j = json{
-            {"action", "changeAES"},
+            {"action", func_name},
             {"AES", new_aes},
         };
         Answer(ws, ok, j);
         return;
     } else {
-        json j = json{
-            {"action", "changeAES"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
     return;
@@ -1933,169 +1057,56 @@ void ChangeAES(WebSocketType* ws, const nlohmann::json& pack) {
 
 void ChangePasswordAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "changePasswordAdmin"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "changePasswordAdmin";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, getIntAnyway(pack["UIN"]), pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"admin"}, func_name)) return;
 
-    if(!pack.contains("dest_uin")) {
-        json j = json{
-            {"action", "changePasswordAdmin"},
-            {"message", "Нет передаваемого клиента назначения"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого клиента назначения" << std::endl;
-        return;
-    }
-
-    if(!pack.contains("new_password")) {
-        json j = json{
-            {"action", "changePasswordAdmin"},
-            {"message", "Нет передаваемого пароля new_password"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого пароля new_password" << std::endl;
-        return;
-    }
-
-    if(!verifyAuth(ws, std::stoll(pack["UIN"].get<std::string>()), pack["auth_key"])) {
-        json j = json{
-            {"action", "changePasswordAdmin"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
-
-    if(!verifyRole(ws, std::stoll(pack["UIN"].get<std::string>()), {"admin"}))
-    {
-        json j = json{
-            {"action", "changePasswordAdmin"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
-
+    if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого клиента назначения")) return;
+    if(!RequireField(ws, pack, "new_password", func_name, "Нет передаваемого пароля new_password")) return;
     json verifyUser = json{};
 
     
-    if(!validatePassword(pack["new_password"])) {
-        json j = json{
-            {"action", "changePasswordAdmin"},
-            {"message", "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол" << std::endl;
-        return;
-    }
+    if(!validatePasswordEnv(ws, pack["new_password"], func_name)) return;
 
     std::string newPasswordHash = hashPassword(pack["new_password"]);
 
     if (Database::prepareStatement("UPDATE users SET password_hash = ? WHERE UIN = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
             newPasswordHash,
-            std::stoll(pack["dest_uin"].get<std::string>())
+            getIntAnyway(pack["dest_uin"])
         };
 
         Database::executeUpdate(params);
         json j = json{
-            {"action", "changePasswordAdmin"},
+            {"action", func_name},
             {"message", "Вы сменили пароль"},
         };
         Answer(ws, ok, j);
         return;
     } else {
-        json j = json{
-            {"action", "changePasswordAdmin"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
 
 }
 
 void ChangePseudonymAdmin(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "changePseudonymAdmin"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "changePseudonymAdmin";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
-    long long int uin = 0;
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
-    
+    long long int uin = getIntAnyway(pack["UIN"]);
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "changePseudonymAdmin"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin"}, func_name)) return;
 
-    if(!verifyAuth(ws, uin, pack["auth_key"])) {
-        json j = json{
-            {"action", "changePseudonymAdmin"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
+    if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого клиента назначения")) return;
+    if(!RequireField(ws, pack, "new_pseudonym", func_name, "Нет передаваемого new_pseudonym")) return;
 
-    if(!verifyRole(ws, uin, {"admin"}))
-    {
-        json j = json{
-            {"action", "changePseudonymAdmin"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
 
-    if(!pack.contains("dest_uin")) {
-        json j = json{
-            {"action", "changePseudonymAdmin"},
-            {"message", "Нет передаваемого клиента назначения"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого клиента назначения" << std::endl;
-        return;
-    }
-
-    long long int dest_uin = 0;
-    if (pack["dest_uin"].is_number()) {
-        dest_uin = pack["dest_uin"].get<long long>();
-    } else if (pack["dest_uin"].is_string()) {
-        dest_uin = std::stoll(pack["dest_uin"].get<std::string>());
-    }
-
-    if(!pack.contains("new_pseudonym")) {
-        json j = json{
-            {"action", "changePseudonymAdmin"},
-            {"message", "Нет передаваемого new_pseudonym"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого new_pseudonym" << std::endl;
-        return;
-    }
+    long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
 
     if (Database::prepareStatement("UPDATE users SET pseudonym = ? WHERE UIN = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
@@ -2106,105 +1117,51 @@ void ChangePseudonymAdmin(WebSocketType* ws, const nlohmann::json& pack) {
         Database::executeUpdate(params);
         WsServer::authKeys[dest_uin]["pseudonym"] = pack["new_pseudonym"].get<std::string>();
         json j = json{
-            {"action", "changePseudonymAdmin"},
+            {"action", func_name},
             {"message", "Вы сменили псевдоним!"},
         };
         Answer(ws, ok, j);
         
 
         json broadcast = json{
-            {"action", "broadcastChangePseudonymAdmin"},
+            {"action", "broadcast" + std::string(func_name)},
             {"UIN", dest_uin},
             {"pseudonym", pack["new_pseudonym"].get<std::string>()}
         };
         ContactsBroadcast(dest_uin, ok, broadcast);
+
+        //Отправляем ответ клиенту назначения, если он в сети
+        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+            json j = json{
+                {"action", func_name},
+                {"pseudonym", pack["new_pseudonym"]},
+            };
+            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
+        }
+
         return;
     } else {
-        json j = json{
-            {"action", "changePseudonymAdmin"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
     return;
 }
 
 void ChangeStatusAdmin(WebSocketType* ws, const nlohmann::json& pack) {
-    if(!pack.contains("UIN")) {
-        json j = json{
-            {"action", "changeStatusAdmin"},
-            {"message", "Нет передаваемого UIN"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого UIN" << std::endl;
-        return;
-    }
+    const std::string_view func_name = "changeStatusAdmin";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
-    long long int uin = 0;
-    if (pack["UIN"].is_number()) {
-        uin = pack["UIN"].get<long long>();
-    } else if (pack["UIN"].is_string()) {
-        uin = std::stoll(pack["UIN"].get<std::string>());
-    }
-    
+    long long int uin = getIntAnyway(pack["UIN"]);
 
-    if(!pack.contains("auth_key")) {
-        json j = json{
-            {"action", "changeStatusAdmin"},
-            {"message", "Нет передаваемого токена авторизации"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого токена авторизации" << std::endl;
-        return;
-    }
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin"}, func_name)) return;
 
-    if(!verifyAuth(ws, uin, pack["auth_key"])) {
-        json j = json{
-            {"action", "changeStatusAdmin"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, clientError, j);
-        return;
-    }
+    if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого клиента назначения")) return;
+    if(!RequireField(ws, pack, "new_status", func_name, "Нет передаваемого new_status")) return;
 
-    if(!verifyRole(ws, uin, {"admin"}))
-    {
-        json j = json{
-            {"action", "changeStatusAdmin"},
-            {"message", "У пользователя не хватает прав для совершения этого действия"},
-        };
-        Answer(ws, ok, j);
-        return;
-    }
 
-    if(!pack.contains("dest_uin")) {
-        json j = json{
-            {"action", "changeStatusAdmin"},
-            {"message", "Нет передаваемого клиента назначения"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого клиента назначения" << std::endl;
-        return;
-    }
-
-    long long int dest_uin = 0;
-    if (pack["dest_uin"].is_number()) {
-        dest_uin = pack["dest_uin"].get<long long>();
-    } else if (pack["dest_uin"].is_string()) {
-        dest_uin = std::stoll(pack["dest_uin"].get<std::string>());
-    }
-
-    if(!pack.contains("new_status")) {
-        json j = json{
-            {"action", "changeStatusAdmin"},
-            {"message", "Нет передаваемого new_status"},
-        };
-        Answer(ws, clientError, j);
-        std::cerr << "Нет передаваемого new_status" << std::endl;
-        return;
-    }
+    long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
 
     if (Database::prepareStatement("UPDATE users SET status = ? WHERE UIN = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
@@ -2215,26 +1172,30 @@ void ChangeStatusAdmin(WebSocketType* ws, const nlohmann::json& pack) {
         Database::executeUpdate(params);
         WsServer::authKeys[dest_uin]["status"] = pack["new_status"].get<std::string>();
         json j = json{
-            {"action", "changeStatusAdmin"},
+            {"action", func_name},
             {"message", "Вы сменили статус!"},
         };
         Answer(ws, ok, j);
         
 
         json broadcast = json{
-            {"action", "broadcastChangeStatusAdmin"},
+            {"action", "broadcast" + std::string(func_name)},
             {"UIN", dest_uin},
             {"status", pack["new_status"].get<std::string>()}
         };
         ContactsBroadcast(dest_uin, ok, broadcast);
+
+        //Отправляем ответ клиенту назначения, если он в сети
+        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+            json j = json{
+                {"action", func_name},
+                {"status", getIntAnyway(pack["new_status"])},
+            };
+            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
+        }
         return;
     } else {
-        json j = json{
-            {"action", "changeStatusAdmin"},
-            {"message", "Ошибка при подготовке SQL-запроса"},
-        };
-        Answer(ws, serverError, j);
-        std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
+        ThrowSQLError(ws, func_name);
         return;
     }
     return;

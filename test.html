@@ -56,7 +56,7 @@
         
         function sendRegistry() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send('{"func": "register", "pack": {"password": "' + document.getElementById('msg').value + '", "pseudonym": "test"}}');
+                ws.send('{"func": "register", "pack": {"password": "' + document.getElementById('msg').value + '", "pseudonym": "tester"}}');
             }
         }
 

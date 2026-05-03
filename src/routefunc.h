@@ -31,6 +31,11 @@ void ChangeAES(WebSocketType* ws, const nlohmann::json& pack);
 void ChangePasswordAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void ChangePseudonymAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void ChangeStatusAdmin(WebSocketType* ws, const nlohmann::json& pack);
+void ChangeStatusAdmin(WebSocketType* ws, const nlohmann::json& pack);
+void BanUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
+void UnbanUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
+void KickUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
+void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack);
 
 void Router(WebSocketType* ws, std::string_view message, const std::string& method, const nlohmann::json& pack) {
     if(method == "echo") { Echo(ws, message, pack); return; }
@@ -56,6 +61,10 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "changePasswordAdmin") { ChangePasswordAdmin(ws, pack); return; }
     if(method == "changePseudonymAdmin") { ChangePseudonymAdmin(ws, pack); return; }
     if(method == "changeStatusAdmin") { ChangeStatusAdmin(ws, pack); return; }
+    if(method == "banUserAdmin") { BanUserAdmin(ws, pack); return; }
+    if(method == "unbanUserAdmin") { UnbanUserAdmin(ws, pack); return; }
+    if(method == "kickUserAdmin") { KickUserAdmin(ws, pack); return; }
+    if(method == "changeRoleAdmin") { ChangeRoleAdmin(ws, pack); return; }
     
     json j = json{
         {"action", "router"},
@@ -406,10 +415,12 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
 
     //проверяем, добавлен ли контакт
     json Contact = json{};
-    if (Database::prepareStatement("SELECT id FROM contacts WHERE initiator_uin = ? AND destination_uin = ? AND is_chat = ?")) {
+    if (Database::prepareStatement("SELECT id FROM contacts WHERE (initiator_uin = ? AND destination_uin = ?) OR (initiator_uin = ? AND destination_uin = ?) AND is_chat = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
             getIntAnyway(pack["UIN"]),
             uin,
+            uin,
+            getIntAnyway(pack["UIN"]),
             false
         };
 
@@ -1115,7 +1126,6 @@ void ChangePseudonymAdmin(WebSocketType* ws, const nlohmann::json& pack) {
         };
 
         Database::executeUpdate(params);
-        WsServer::authKeys[dest_uin]["pseudonym"] = pack["new_pseudonym"].get<std::string>();
         json j = json{
             {"action", func_name},
             {"message", "Вы сменили псевдоним!"},
@@ -1136,6 +1146,7 @@ void ChangePseudonymAdmin(WebSocketType* ws, const nlohmann::json& pack) {
                 {"action", func_name},
                 {"pseudonym", pack["new_pseudonym"]},
             };
+            WsServer::authKeys[dest_uin]["pseudonym"] = pack["new_pseudonym"].get<std::string>();
             Answer(WsServer::authorizedSockets[dest_uin], ok, j);
         }
 
@@ -1170,7 +1181,6 @@ void ChangeStatusAdmin(WebSocketType* ws, const nlohmann::json& pack) {
         };
 
         Database::executeUpdate(params);
-        WsServer::authKeys[dest_uin]["status"] = pack["new_status"].get<std::string>();
         json j = json{
             {"action", func_name},
             {"message", "Вы сменили статус!"},
@@ -1190,6 +1200,229 @@ void ChangeStatusAdmin(WebSocketType* ws, const nlohmann::json& pack) {
             json j = json{
                 {"action", func_name},
                 {"status", getIntAnyway(pack["new_status"])},
+            };
+            WsServer::authKeys[dest_uin]["status"] = pack["new_status"].get<std::string>();
+            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
+        }
+        return;
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+    return;
+}
+
+void BanUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "banUserAdmin";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin"}, func_name)) return;
+
+    if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого клиента назначения")) return;
+
+
+    long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
+
+    if (Database::prepareStatement("UPDATE users SET is_active = ? WHERE UIN = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            false,
+            dest_uin
+        };
+
+        Database::executeUpdate(params);
+        json j = json{
+            {"action", func_name},
+            {"message", "Вы забанили пользователя"},
+        };
+        Answer(ws, ok, j);
+        
+        json broadcast = json{
+            {"action", "broadcast" + std::string(func_name)},
+            {"UIN", dest_uin},
+            {"is_active", false}
+        };
+        ContactsBroadcast(dest_uin, ok, broadcast);
+
+        //Отправляем ответ клиенту назначения, если он в сети
+        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+            json j = json{
+                {"action", func_name},
+                {"is_active", false},
+            };
+            WsServer::authKeys[dest_uin]["is_active"] = "0";
+            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
+
+            uWS::WebSocket<false, true, std::nullptr_t>* socket = WsServer::authorizedSockets[dest_uin];
+            auto* loop = uWS::Loop::get();
+            // Планируем закрытие в том же потоке
+            loop->defer([socket]() {
+               socket->close();
+            });
+        }
+        return;
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+    return;
+}
+
+void UnbanUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "unbanUserAdmin";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin"}, func_name)) return;
+
+    if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого клиента назначения")) return;
+
+
+    long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
+
+    if (Database::prepareStatement("UPDATE users SET is_active = ? WHERE UIN = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            true,
+            dest_uin
+        };
+
+        Database::executeUpdate(params);
+        json j = json{
+            {"action", func_name},
+            {"message", "Вы разбанили пользователя"},
+        };
+        Answer(ws, ok, j);
+        
+        json broadcast = json{
+            {"action", "broadcast" + std::string(func_name)},
+            {"UIN", dest_uin},
+            {"is_active", true}
+        };
+        ContactsBroadcast(dest_uin, ok, broadcast);
+
+        //Отправляем ответ клиенту назначения, если он в сети
+        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+            json j = json{
+                {"action", func_name},
+                {"is_active", true},
+            };
+            WsServer::authKeys[dest_uin]["is_active"] = "0";
+            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
+        }
+        return;
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+    return;
+}
+
+void KickUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "kickUserAdmin";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin"}, func_name)) return;
+
+    if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого клиента назначения")) return;
+
+
+    long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
+    
+    if (Database::prepareStatement("UPDATE users SET auth_token = NULL WHERE UIN = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            dest_uin
+        };
+
+        Database::executeUpdate(params);
+        json j = json{
+            {"action", func_name},
+            {"message", "Вы кикнули пользователя"},
+        };
+        Answer(ws, ok, j);
+        
+        json broadcast = json{
+            {"action", "broadcast" + std::string(func_name)},
+            {"UIN", dest_uin},
+            {"is_active", false}
+        };
+        ContactsBroadcast(dest_uin, ok, broadcast);
+
+        //Отправляем ответ клиенту назначения, если он в сети
+        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+            json j = json{
+                {"action", func_name},
+            };
+            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
+            
+            uWS::WebSocket<false, true, std::nullptr_t>* socket = WsServer::authorizedSockets[dest_uin];
+            auto* loop = uWS::Loop::get();
+            // Планируем закрытие в том же потоке
+            loop->defer([socket]() {
+               socket->close();
+            });
+        }
+        return;
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+    return;
+
+}
+
+void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "changeRoleAdmin";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin"}, func_name)) return;
+
+    if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого клиента назначения")) return;
+    if(!RequireField(ws, pack, "roles", func_name, "Нет передаваемой роли")) return;
+
+    if(!json::accept(pack["roles"].get<std::string>())) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Некорректный json ролей"},
+        };
+        Answer(ws, clientError, j);
+        return;
+    }
+
+    long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
+
+    if (Database::prepareStatement("UPDATE users SET roles = ? WHERE UIN = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            pack["roles"].get<std::string>(),
+            dest_uin
+        };
+
+        Database::executeUpdate(params);
+        json j = json{
+            {"action", func_name},
+            {"message", "Вы изменили роль пользователя"},
+        };
+        Answer(ws, ok, j);
+
+        //Отправляем ответ клиенту назначения, если он в сети
+        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+            WsServer::authKeys[dest_uin]["roles"] = pack["roles"].get<std::string>();
+            json j = json{
+                {"action", func_name},
+                {"roles", pack["roles"]}
             };
             Answer(WsServer::authorizedSockets[dest_uin], ok, j);
         }

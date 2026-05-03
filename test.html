@@ -32,6 +32,10 @@
     <button onclick="sendChangePasswordAdmin()">SendChangePasswordAdmin</button>
     <button onclick="sendChangePseudonymAdmin()">SendChangePseudonymAdmin</button>
     <button onclick="sendChangeStatusAdmin()">SendChangeStatusAdmin</button>
+    <button onclick="sendBanUserAdmin()">SendBanUserAdmin</button>
+    <button onclick="sendUnbanUserAdmin()">SendUnbanUserAdmin</button>
+    <button onclick="sendKickUserAdmin()">SendKickUserAdmin</button>
+    <button onclick="sendChangeRoleAdmin()">SendChangeRoleAdmin</button>
     <div id="auth_key"></div>
     <div id="log"></div>
 
@@ -240,6 +244,43 @@
                 '", "UIN": "' + document.getElementById('msg').value +
                 '", "dest_uin": "' + document.getElementById('msg2').value +
                 '", "new_status": "' + document.getElementById('msg3').value +
+                '"}}');
+            }
+        }
+
+        function sendBanUserAdmin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "banUserAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_uin": "' + document.getElementById('msg2').value +
+                '"}}');
+            }
+        }
+
+        function sendUnbanUserAdmin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "unbanUserAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_uin": "' + document.getElementById('msg2').value +
+                '"}}');
+            }
+        }
+
+        function sendKickUserAdmin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "kickUserAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_uin": "' + document.getElementById('msg2').value +
+                '"}}');
+            }
+        }
+
+        function sendChangeRoleAdmin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('{"func": "changeRoleAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_uin": "' + document.getElementById('msg2').value +
+                '", "roles": "' + document.getElementById('msg3').value +
                 '"}}');
             }
         }

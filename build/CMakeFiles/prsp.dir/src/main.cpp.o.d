@@ -251,9 +251,40 @@ CMakeFiles/prsp.dir/src/main.cpp.o: \
  /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/WebSocket.h \
  /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/WebSocketContextData.h \
  /home/gennycat/Документы/GitHub/PRSPServer/extern/uWebSockets/src/WebSocketContext.h \
+ /home/gennycat/Документы/GitHub/PRSPServer/src/crypt.h \
+ /usr/include/c++/15/random /usr/include/c++/15/cmath /usr/include/math.h \
+ /usr/include/bits/math-vector.h /usr/include/bits/libm-simd-decl-stubs.h \
+ /usr/include/bits/flt-eval-method.h /usr/include/bits/fp-logb.h \
+ /usr/include/bits/fp-fast.h /usr/include/bits/mathcalls-macros.h \
+ /usr/include/bits/mathcalls-helper-functions.h \
+ /usr/include/bits/mathcalls.h /usr/include/bits/mathcalls-narrow.h \
+ /usr/include/bits/iscanonical.h /usr/include/c++/15/bits/specfun.h \
+ /usr/include/c++/15/tr1/gamma.tcc \
+ /usr/include/c++/15/tr1/special_function_util.h \
+ /usr/include/c++/15/tr1/bessel_function.tcc \
+ /usr/include/c++/15/tr1/beta_function.tcc \
+ /usr/include/c++/15/tr1/ell_integral.tcc \
+ /usr/include/c++/15/tr1/exp_integral.tcc \
+ /usr/include/c++/15/tr1/hypergeometric.tcc \
+ /usr/include/c++/15/tr1/legendre_function.tcc \
+ /usr/include/c++/15/tr1/modified_bessel_func.tcc \
+ /usr/include/c++/15/tr1/poly_hermite.tcc \
+ /usr/include/c++/15/tr1/poly_laguerre.tcc \
+ /usr/include/c++/15/tr1/riemann_zeta.tcc \
+ /usr/include/c++/15/bits/random.h \
+ /usr/include/c++/15/x86_64-redhat-linux/bits/opt_random.h \
+ /usr/include/c++/15/bits/random.tcc /usr/include/c++/15/numeric \
+ /usr/include/c++/15/bits/stl_numeric.h \
+ /usr/include/c++/15/pstl/glue_numeric_defs.h /usr/include/c++/15/chrono \
+ /usr/include/c++/15/sstream /usr/include/c++/15/bits/sstream.tcc \
+ /usr/include/c++/15/bits/chrono_io.h /usr/include/c++/15/iomanip \
+ /usr/include/c++/15/bits/quoted_string.h /usr/include/c++/15/format \
+ /usr/include/c++/15/span /usr/include/c++/15/bits/monostate.h \
+ /usr/include/c++/15/bits/formatfwd.h /usr/include/c++/15/bits/unicode.h \
+ /usr/include/c++/15/bits/unicode-data.h \
  /home/gennycat/Документы/GitHub/PRSPServer/src/conf.h \
  /home/gennycat/Документы/GitHub/PRSPServer/src/database.h \
- /usr/include/c++/15/variant /usr/include/c++/15/bits/monostate.h \
+ /usr/include/c++/15/variant \
  /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp.hpp \
  /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Driver.hpp \
  /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/buildconf.hpp \
@@ -290,25 +321,6 @@ CMakeFiles/prsp.dir/src/main.cpp.o: \
  /usr/include/c++/15/iterator /usr/include/c++/15/bits/stream_iterator.h \
  /usr/include/c++/15/forward_list /usr/include/c++/15/bits/forward_list.h \
  /usr/include/c++/15/bits/forward_list.tcc /usr/include/c++/15/valarray \
- /usr/include/c++/15/cmath /usr/include/math.h \
- /usr/include/bits/math-vector.h /usr/include/bits/libm-simd-decl-stubs.h \
- /usr/include/bits/flt-eval-method.h /usr/include/bits/fp-logb.h \
- /usr/include/bits/fp-fast.h /usr/include/bits/mathcalls-macros.h \
- /usr/include/bits/mathcalls-helper-functions.h \
- /usr/include/bits/mathcalls.h /usr/include/bits/mathcalls-narrow.h \
- /usr/include/bits/iscanonical.h /usr/include/c++/15/bits/specfun.h \
- /usr/include/c++/15/tr1/gamma.tcc \
- /usr/include/c++/15/tr1/special_function_util.h \
- /usr/include/c++/15/tr1/bessel_function.tcc \
- /usr/include/c++/15/tr1/beta_function.tcc \
- /usr/include/c++/15/tr1/ell_integral.tcc \
- /usr/include/c++/15/tr1/exp_integral.tcc \
- /usr/include/c++/15/tr1/hypergeometric.tcc \
- /usr/include/c++/15/tr1/legendre_function.tcc \
- /usr/include/c++/15/tr1/modified_bessel_func.tcc \
- /usr/include/c++/15/tr1/poly_hermite.tcc \
- /usr/include/c++/15/tr1/poly_laguerre.tcc \
- /usr/include/c++/15/tr1/riemann_zeta.tcc \
  /usr/include/c++/15/bits/valarray_array.h \
  /usr/include/c++/15/bits/valarray_array.tcc \
  /usr/include/c++/15/bits/valarray_before.h \
@@ -320,11 +332,7 @@ CMakeFiles/prsp.dir/src/main.cpp.o: \
  /usr/include/c++/15/bits/indirect_array.h /usr/include/c++/15/version \
  /usr/include/c++/15/cassert /usr/include/assert.h \
  /usr/include/c++/15/filesystem /usr/include/c++/15/bits/fs_fwd.h \
- /usr/include/c++/15/bits/fs_path.h /usr/include/c++/15/iomanip \
- /usr/include/c++/15/bits/quoted_string.h /usr/include/c++/15/sstream \
- /usr/include/c++/15/bits/sstream.tcc /usr/include/c++/15/codecvt \
+ /usr/include/c++/15/bits/fs_path.h /usr/include/c++/15/codecvt \
  /usr/include/c++/15/bits/fs_dir.h /usr/include/c++/15/bits/fs_ops.h \
- /usr/include/c++/15/ranges /usr/include/c++/15/span \
- /usr/include/c++/15/numeric /usr/include/c++/15/bits/stl_numeric.h \
- /usr/include/c++/15/pstl/glue_numeric_defs.h /usr/include/c++/15/any \
+ /usr/include/c++/15/ranges /usr/include/c++/15/any \
  /home/gennycat/Документы/GitHub/PRSPServer/src/wsserver.h

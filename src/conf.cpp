@@ -4,6 +4,12 @@
 #include <sstream>
 #include <codecvt>
 #include <locale>
+#include <openssl/evp.h>
+#include <openssl/bio.h>
+#include <algorithm>
+#include <cctype>
+#include <string>
+#include <vector>
 
 std::string Conf::trim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t\n\r");
@@ -43,6 +49,27 @@ void Conf::setValue(const std::string& key, const std::string& value) {
         else {
             std::cerr << "⚠️ Неверное значение debud (необходимы только значения true, false): " << value << std::endl;
         }
+    } else if(key == "masterkey") {
+        master_key = value;
+
+        std::string clean = value;
+        clean.erase(std::remove_if(clean.begin(), clean.end(), ::isspace), clean.end());
+    
+        BIO *bio = BIO_new_mem_buf(clean.data(), clean.size());
+        BIO *b64 = BIO_new(BIO_f_base64());
+        bio = BIO_push(b64, bio);
+        BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
+    
+        std::vector<unsigned char> result(clean.size());
+        int len = BIO_read(bio, result.data(), result.size());
+        BIO_free_all(bio);
+    
+        if (len <= 0) {
+            throw std::runtime_error("Base64 decode failed");
+        }
+    
+        result.resize(len);
+        master_key_bin = result;
     }
 }
 
@@ -97,5 +124,6 @@ void Conf::printAll() {
     std::cout << "👤 Database User: " << dbuser << std::endl;
     std::cout << "🔐 Database Password: " << std::string(dbpassword.length(), '*') << std::endl;
     std::cout << "🌐 Service Port: " << serviceport << std::endl;
+    std::cout << "🔐 Master Key: " << master_key << std::endl;
     std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" << std::endl;
 }

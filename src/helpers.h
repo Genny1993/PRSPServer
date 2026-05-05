@@ -9,6 +9,11 @@
 #include <string>
 #include <chrono>
 #include "database.h"
+#include <stdexcept>
+#include <algorithm>
+#include <vector>
+#include <iostream>
+#include "crypt.h"
 
 std::string_view serverError = "SERVER_ERROR";
 std::string_view clientError = "CLIENT_ERROR";
@@ -23,7 +28,8 @@ bool Answer(WebSocketType* ws, std::string_view status, const auto& pack) {
         };
 
     std::string sanswer = answer.dump();
-    bool result = ws->send(sanswer, uWS::OpCode::TEXT);
+    sanswer = encryptAES(sanswer, Conf::getMasterKeyBin());
+    bool result = ws->send(sanswer, uWS::OpCode::BINARY);
     if(!result) {
         ws->close();
     }
@@ -91,24 +97,6 @@ std::string getTimestampNow() {
     ss << std::put_time(std::localtime(&t), "%Y-%m-%d %H:%M:%S");
     ss << '.' << std::setfill('0') << std::setw(3) << ms.count();
     return ss.str();
-}
-
-std::string generateAES() {
-     unsigned char key[32];
-    
-    // Генерируем случайные байты
-    if (RAND_bytes(key, sizeof(key)) != 1) {
-        throw std::runtime_error("Ошибка генерации ключа");
-    }
-    
-    // Кодируем в base64
-    size_t b64_len = ((sizeof(key) + 2) / 3) * 4 + 1;
-    char* b64 = new char[b64_len];
-    EVP_EncodeBlock(reinterpret_cast<unsigned char*>(b64), key, sizeof(key));
-    
-    std::string result(b64);
-    delete[] b64;
-    return result;
 }
 
 std::string generateAuthToken(long long int uin) {

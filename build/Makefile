@@ -153,6 +153,30 @@ src/conf.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/prsp.dir/build.make CMakeFiles/prsp.dir/src/conf.cpp.s
 .PHONY : src/conf.cpp.s
 
+src/crypt.o: src/crypt.cpp.o
+.PHONY : src/crypt.o
+
+# target to build an object file
+src/crypt.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/prsp.dir/build.make CMakeFiles/prsp.dir/src/crypt.cpp.o
+.PHONY : src/crypt.cpp.o
+
+src/crypt.i: src/crypt.cpp.i
+.PHONY : src/crypt.i
+
+# target to preprocess a source file
+src/crypt.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/prsp.dir/build.make CMakeFiles/prsp.dir/src/crypt.cpp.i
+.PHONY : src/crypt.cpp.i
+
+src/crypt.s: src/crypt.cpp.s
+.PHONY : src/crypt.s
+
+# target to generate assembly for a file
+src/crypt.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/prsp.dir/build.make CMakeFiles/prsp.dir/src/crypt.cpp.s
+.PHONY : src/crypt.cpp.s
+
 src/database.o: src/database.cpp.o
 .PHONY : src/database.o
 
@@ -237,6 +261,9 @@ help:
 	@echo "... src/conf.o"
 	@echo "... src/conf.i"
 	@echo "... src/conf.s"
+	@echo "... src/crypt.o"
+	@echo "... src/crypt.i"
+	@echo "... src/crypt.s"
 	@echo "... src/database.o"
 	@echo "... src/database.i"
 	@echo "... src/database.s"

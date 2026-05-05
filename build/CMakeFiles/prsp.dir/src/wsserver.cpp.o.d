@@ -353,4 +353,5 @@ CMakeFiles/prsp.dir/src/wsserver.cpp.o: \
  /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/SQLString.hpp \
  /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/Exception.hpp \
  /home/gennycat/Документы/GitHub/PRSPServer/extern/mariadb-connector/include/mariadb/conncpp/jdbccompat.hpp \
+ /home/gennycat/Документы/GitHub/PRSPServer/src/crypt.h \
  /home/gennycat/Документы/GitHub/PRSPServer/src/validators.h

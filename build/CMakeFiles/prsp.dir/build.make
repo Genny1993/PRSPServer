@@ -86,10 +86,24 @@ CMakeFiles/prsp.dir/src/conf.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/prsp.dir/src/conf.cpp.s"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/gennycat/Документы/GitHub/PRSPServer/src/conf.cpp -o CMakeFiles/prsp.dir/src/conf.cpp.s
 
+CMakeFiles/prsp.dir/src/crypt.cpp.o: CMakeFiles/prsp.dir/flags.make
+CMakeFiles/prsp.dir/src/crypt.cpp.o: /home/gennycat/Документы/GitHub/PRSPServer/src/crypt.cpp
+CMakeFiles/prsp.dir/src/crypt.cpp.o: CMakeFiles/prsp.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/prsp.dir/src/crypt.cpp.o"
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/crypt.cpp.o -MF CMakeFiles/prsp.dir/src/crypt.cpp.o.d -o CMakeFiles/prsp.dir/src/crypt.cpp.o -c /home/gennycat/Документы/GitHub/PRSPServer/src/crypt.cpp
+
+CMakeFiles/prsp.dir/src/crypt.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/prsp.dir/src/crypt.cpp.i"
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/gennycat/Документы/GitHub/PRSPServer/src/crypt.cpp > CMakeFiles/prsp.dir/src/crypt.cpp.i
+
+CMakeFiles/prsp.dir/src/crypt.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/prsp.dir/src/crypt.cpp.s"
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/gennycat/Документы/GitHub/PRSPServer/src/crypt.cpp -o CMakeFiles/prsp.dir/src/crypt.cpp.s
+
 CMakeFiles/prsp.dir/src/database.cpp.o: CMakeFiles/prsp.dir/flags.make
 CMakeFiles/prsp.dir/src/database.cpp.o: /home/gennycat/Документы/GitHub/PRSPServer/src/database.cpp
 CMakeFiles/prsp.dir/src/database.cpp.o: CMakeFiles/prsp.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/prsp.dir/src/database.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/prsp.dir/src/database.cpp.o"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/database.cpp.o -MF CMakeFiles/prsp.dir/src/database.cpp.o.d -o CMakeFiles/prsp.dir/src/database.cpp.o -c /home/gennycat/Документы/GitHub/PRSPServer/src/database.cpp
 
 CMakeFiles/prsp.dir/src/database.cpp.i: cmake_force
@@ -103,7 +117,7 @@ CMakeFiles/prsp.dir/src/database.cpp.s: cmake_force
 CMakeFiles/prsp.dir/src/main.cpp.o: CMakeFiles/prsp.dir/flags.make
 CMakeFiles/prsp.dir/src/main.cpp.o: /home/gennycat/Документы/GitHub/PRSPServer/src/main.cpp
 CMakeFiles/prsp.dir/src/main.cpp.o: CMakeFiles/prsp.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/prsp.dir/src/main.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/prsp.dir/src/main.cpp.o"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/main.cpp.o -MF CMakeFiles/prsp.dir/src/main.cpp.o.d -o CMakeFiles/prsp.dir/src/main.cpp.o -c /home/gennycat/Документы/GitHub/PRSPServer/src/main.cpp
 
 CMakeFiles/prsp.dir/src/main.cpp.i: cmake_force
@@ -117,7 +131,7 @@ CMakeFiles/prsp.dir/src/main.cpp.s: cmake_force
 CMakeFiles/prsp.dir/src/wsserver.cpp.o: CMakeFiles/prsp.dir/flags.make
 CMakeFiles/prsp.dir/src/wsserver.cpp.o: /home/gennycat/Документы/GitHub/PRSPServer/src/wsserver.cpp
 CMakeFiles/prsp.dir/src/wsserver.cpp.o: CMakeFiles/prsp.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/prsp.dir/src/wsserver.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/prsp.dir/src/wsserver.cpp.o"
 	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/prsp.dir/src/wsserver.cpp.o -MF CMakeFiles/prsp.dir/src/wsserver.cpp.o.d -o CMakeFiles/prsp.dir/src/wsserver.cpp.o -c /home/gennycat/Документы/GitHub/PRSPServer/src/wsserver.cpp
 
 CMakeFiles/prsp.dir/src/wsserver.cpp.i: cmake_force
@@ -131,6 +145,7 @@ CMakeFiles/prsp.dir/src/wsserver.cpp.s: cmake_force
 # Object files for target prsp
 prsp_OBJECTS = \
 "CMakeFiles/prsp.dir/src/conf.cpp.o" \
+"CMakeFiles/prsp.dir/src/crypt.cpp.o" \
 "CMakeFiles/prsp.dir/src/database.cpp.o" \
 "CMakeFiles/prsp.dir/src/main.cpp.o" \
 "CMakeFiles/prsp.dir/src/wsserver.cpp.o"
@@ -139,6 +154,7 @@ prsp_OBJECTS = \
 prsp_EXTERNAL_OBJECTS =
 
 prsp: CMakeFiles/prsp.dir/src/conf.cpp.o
+prsp: CMakeFiles/prsp.dir/src/crypt.cpp.o
 prsp: CMakeFiles/prsp.dir/src/database.cpp.o
 prsp: CMakeFiles/prsp.dir/src/main.cpp.o
 prsp: CMakeFiles/prsp.dir/src/wsserver.cpp.o
@@ -151,7 +167,7 @@ prsp: /usr/lib64/libssl.so
 prsp: /usr/lib64/libcrypto.so
 prsp: /usr/lib64/libz.so
 prsp: CMakeFiles/prsp.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable prsp"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/gennycat/Документы/GitHub/PRSPServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX executable prsp"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/prsp.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

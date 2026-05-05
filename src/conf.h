@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <mutex>
+#include <vector>
 
 class Conf {
 private:
@@ -20,6 +21,8 @@ private:
     inline static std::string dbpassword = "";
     inline static int serviceport = 3000;
     inline static bool debug = false;
+    inline static std::string master_key = "";
+    inline static std::vector<unsigned char> master_key_bin;
     
     inline static std::mutex mutex;
     inline static bool is_loaded = false;
@@ -74,6 +77,16 @@ public:
         return is_loaded;
     }
     
+    static std::string getMasterKey() {
+        std::lock_guard<std::mutex> lock(mutex);
+        return master_key;
+    }
+
+    static std::vector<unsigned char> getMasterKeyBin() {
+        std::lock_guard<std::mutex> lock(mutex);
+        return master_key_bin;
+    }
+
     // Отображение всех настроек (для отладки)
     static void printAll();
 };

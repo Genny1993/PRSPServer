@@ -5,6 +5,7 @@
 #include "helpers.h"
 #include "validators.h"
 #include "database.h"
+#include "crypt.h"
 
 void Router(WebSocketType* ws, std::string_view message, const std::string& method, const nlohmann::json& pack);
 
@@ -1199,7 +1200,7 @@ void ChangeStatusAdmin(WebSocketType* ws, const nlohmann::json& pack) {
         if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
             json j = json{
                 {"action", func_name},
-                {"status", getIntAnyway(pack["new_status"])},
+                {"status", pack["new_status"]},
             };
             WsServer::authKeys[dest_uin]["status"] = pack["new_status"].get<std::string>();
             Answer(WsServer::authorizedSockets[dest_uin], ok, j);

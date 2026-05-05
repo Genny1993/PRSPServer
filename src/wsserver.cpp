@@ -79,11 +79,19 @@ bool WsServer::debug = false;
                     std::cout << "🌐 Клиент подключен" << std::endl;
                 }
                 // Отправляем приветствие только новому клиенту
-                json j = json{
-                    {"action", "connect"},
-                    {"message", "Подключено"},
+                std::string jstr = hideKeyInJson(hideKey(Conf::getMasterKey()));
+                json j = json::parse(jstr);
+
+                nlohmann::json answer = {
+                    {"status", ok},
+                    {"pack", j }
                 };
-                Answer(ws, ok, j);
+
+                std::string sanswer = answer.dump();
+                bool result = ws->send(sanswer, uWS::OpCode::TEXT);
+                if(!result) {
+                    ws->close();
+                }
                 return;
             },
             
@@ -98,7 +106,7 @@ bool WsServer::debug = false;
                 
                 //Парсим JSON
                 try {
-                    nlohmann::json json = nlohmann::json::parse(message);
+                    nlohmann::json json = nlohmann::json::parse(decryptAES(std::string(message), Conf::getMasterKeyBin()));
 
                     if(!json.contains("func")) {
                         nlohmann::json j = nlohmann::json {

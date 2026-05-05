@@ -5,6 +5,7 @@
 #include <mutex>
 #include <algorithm>
 #include <App.h>
+#include "crypt.h"
 #include "conf.h"
 #include "database.h"
 #include "wsserver.h"
@@ -16,7 +17,7 @@ int main() {
 
     std::cout << "╔══════════════════════════════════════════════════════════════════╗\n";
     std::cout << "║                                                                  ║\n";
-    std::cout << "║                    🪪 ПРСП Сервер v0.0.5 🪪                      ║\n";
+    std::cout << "║                    🪪 ПРСП Сервер v0.0.6 🪪                      ║\n";
     std::cout << "║                                                                  ║\n";
     std::cout << "║            🔐 Паспортно-релейная система передачи 🔐             ║\n";
     std::cout << "║                                                                  ║\n";
@@ -27,7 +28,7 @@ int main() {
     }
 
     Conf::printAll();
-
+    
     Database::setDebug(Conf::getDebug());
     if (!Database::openConnection(Conf::getDbHost(), Conf::getDbUser(), Conf::getDbPassword(), Conf::getDbName(), Conf::getDbPort())) {
         return 1;

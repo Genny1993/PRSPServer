@@ -36,6 +36,7 @@
     <button onclick="sendUnbanUserAdmin()">SendUnbanUserAdmin</button>
     <button onclick="sendKickUserAdmin()">SendKickUserAdmin</button>
     <button onclick="sendChangeRoleAdmin()">SendChangeRoleAdmin</button>
+    <button onclick="sendChangeAddable()">SendChangeAddable</button>
     <div id="auth_key"></div>
     <div id="master_key"></div>
     <div id="log"></div>
@@ -420,6 +421,16 @@
                 '", "UIN": "' + document.getElementById('msg').value +
                 '", "dest_uin": "' + document.getElementById('msg2').value +
                 '", "roles": "' + document.getElementById('msg3').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendChangeAddable() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "changeAddable", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "addable": "' + document.getElementById('msg2').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }

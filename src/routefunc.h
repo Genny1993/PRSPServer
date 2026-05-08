@@ -37,6 +37,7 @@ void BanUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void UnbanUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void KickUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack);
+void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack);
 
 void Router(WebSocketType* ws, std::string_view message, const std::string& method, const nlohmann::json& pack) {
     if(method == "echo") { Echo(ws, message, pack); return; }
@@ -66,6 +67,7 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "unbanUserAdmin") { UnbanUserAdmin(ws, pack); return; }
     if(method == "kickUserAdmin") { KickUserAdmin(ws, pack); return; }
     if(method == "changeRoleAdmin") { ChangeRoleAdmin(ws, pack); return; }
+    if(method == "changeAddable") { ChangeAddable(ws, pack); return; }
     
     json j = json{
         {"action", "router"},
@@ -390,7 +392,7 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
 
     //проверяем, существует ли UIN
     json User = json{};
-    if (Database::prepareStatement("SELECT UIN, pseudonym, status FROM users WHERE UIN = ? AND is_active = ?")) {
+    if (Database::prepareStatement("SELECT UIN, pseudonym, status, is_addable FROM users WHERE UIN = ? AND is_active = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
             uin,
             true
@@ -404,6 +406,15 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
                 {"message", "Пользователь не существует"},
             };
             Answer(ws, clientError, j);
+            return;
+        }
+
+        if(User[0]["is_addable"].get<std::string>() == "0") {
+            json j = json{
+                {"action", func_name},
+                {"message", "Пользователь запретил добавлять себя в список контактов"},
+            };
+            Answer(ws, serverError, j);
             return;
         }
 
@@ -1427,6 +1438,52 @@ void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack) {
             };
             Answer(WsServer::authorizedSockets[dest_uin], ok, j);
         }
+        return;
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+    return;
+}
+
+void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "changeAddable";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
+
+    if(!RequireField(ws, pack, "addable", func_name, "Нет передаваемого флага addable")) return;
+
+    bool addable =false;
+    if(pack["addable"].get<std::string>() == "true") {
+        addable = true;
+    } else if (pack["addable"].get<std::string>() == "false") {
+        addable = false;
+    } else {
+        json j = json{
+            {"action", func_name},
+            {"message", "Некорректный флаг addable"},
+        };
+        Answer(ws, clientError, j);
+        return;
+    }
+
+    if (Database::prepareStatement("UPDATE users SET is_addable = ? WHERE UIN = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            addable,
+            uin
+        };
+
+        Database::executeUpdate(params);
+        json j = json{
+            {"action", func_name},
+            {"message", "Вы изменили addable пользователя"},
+        };
+        Answer(ws, ok, j);
         return;
     } else {
         ThrowSQLError(ws, func_name);

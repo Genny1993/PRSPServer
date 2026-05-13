@@ -38,6 +38,7 @@ void UnbanUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void KickUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack);
+void NewMessage(WebSocketType* ws, const nlohmann::json& pack);
 
 void Router(WebSocketType* ws, std::string_view message, const std::string& method, const nlohmann::json& pack) {
     if(method == "echo") { Echo(ws, message, pack); return; }
@@ -68,6 +69,7 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "kickUserAdmin") { KickUserAdmin(ws, pack); return; }
     if(method == "changeRoleAdmin") { ChangeRoleAdmin(ws, pack); return; }
     if(method == "changeAddable") { ChangeAddable(ws, pack); return; }
+    if(method == "newMessage") { NewMessage(ws, pack); return; }
     
     json j = json{
         {"action", "router"},
@@ -1488,6 +1490,186 @@ void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack) {
     } else {
         ThrowSQLError(ws, func_name);
         return;
+    }
+    return;
+}
+
+void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "newMessage";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
+
+    if(!RequireField(ws, pack, "dest_id", func_name, "Нет передаваемого id назначения")) return;
+    if(!RequireField(ws, pack, "is_chat", func_name, "Нет передаваемого is_chat")) return;
+    if(!RequireField(ws, pack, "message", func_name, "Нет передаваемого message")) return;
+
+    if(!validateMessageEnv(ws, pack["message"], func_name)) return;
+
+    long long int dest_id = getIntAnyway(pack["dest_id"]);
+    bool is_chat = false;
+    if(pack["is_chat"].get<std::string>() == "true") {
+        is_chat = true;
+    } else if (pack["is_chat"].get<std::string>() == "false") {
+        is_chat = false;
+    } else {
+        json j = json{
+            {"action", func_name},
+            {"message", "Некорректный флаг is_chat"},
+        };
+        Answer(ws, clientError, j);
+        return;
+    }
+
+    if(!is_chat) {
+        if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого UIN назначения")) return;
+        long long int dest_uin = getIntAnyway(pack["dest_uin"]);
+
+        json User = json{};
+        //Существует ли пользователь
+        if (Database::prepareStatement("SELECT UIN FROM users WHERE UIN = ? AND is_active = ?")) {
+            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                uin,
+                true
+            };
+
+            User = Database::executeSelect(params);
+
+            if(User.empty()) {
+                json j = json{
+                    {"action", func_name},
+                    {"message", "Пользователь не существует"},
+                };
+                Answer(ws, clientError, j);
+                return;
+            }
+        } else {
+            ThrowSQLError(ws, func_name);
+            return;
+        }    
+
+        json Contact = json{};
+        //Существует ли контакт
+        if (Database::prepareStatement("SELECT id, initiator_uin, destination_uin FROM contacts WHERE (initiator_uin = ? AND destination_uin = ?) OR (initiator_uin = ? AND destination_uin = ?) AND is_chat = ? AND id = ? AND is_approved = ?")) {
+            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                uin,
+                dest_uin,
+                dest_uin,
+                uin,
+                false,
+                dest_id,
+                true
+            };
+
+            Contact = Database::executeSelect(params);
+
+            if(Contact.empty()) {
+                json j = json{
+                    {"action", func_name},
+                    {"message", "Контакт не существует"},
+                };
+                Answer(ws, clientError, j);
+                return;
+            }
+
+            std::string pseudonym = "";
+            //проверяем, точно ли это контакт этого пользователя
+            if(WsServer::authKeys.find(uin) != WsServer::authKeys.end()) {
+                if(WsServer::authKeys[uin]["auth_key"] != pack["auth_key"].get<std::string>()) {
+                    json j = json{
+                        {"action", func_name},
+                        {"message", "У вас нет прав для совершения этого действия (Ключ авторизации не подходит)"},
+                    };
+                    Answer(ws, clientError, j);
+                    return;
+                } else {
+                    pseudonym = WsServer::authKeys[uin]["pseudonym"];
+                }
+            } else {
+                json j = json{
+                    {"action", func_name},
+                    {"message", "У вас нет прав для совершения этого действия (Пользователь не найден)"},
+                };
+                Answer(ws, clientError, j);
+                return;
+            }
+
+            bool delivered = false;
+            std::string timestamp = getTimestampNow();
+            long long new_id = 0;
+
+            //Пытаемся вставить сообщение в базу данных
+            if (Database::prepareStatement("INSERT INTO messages (in_uin, dest_uin, dest_id, is_chat, time_stamp, delivered, deleted, message, answer_id, attachment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)")) {
+                std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                    uin,
+                    dest_uin,
+                    dest_id,
+                    false,
+                    timestamp,
+                    false,
+                    false,
+                    pack["message"].get<std::string>(),
+                };
+        
+                new_id = Database::executeInsertAndGetId(params);
+            } else {
+                ThrowSQLError(ws, func_name);
+                return;
+            }
+
+            //Пытаемся отправить сообщение другому пользователю.
+            if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+                json j = json{
+                    {"action", "getNewMessage"},
+                    {"id", new_id},
+                    {"sender_uin", pack["UIN"]},
+                    {"dest_uin", dest_uin},
+                    {"sender_pseudonym", pseudonym},
+                    {"dest_id", pack["dest_id"]},
+                    {"message", pack["message"]},
+                    {"time", timestamp},
+                    {"is_chat", pack["is_chat"]},
+                    {"delivered", "true"},
+                    {"is_my", "false"},
+                };
+                Answer(WsServer::authorizedSockets[dest_uin], ok, j);
+
+                if (Database::prepareStatement("UPDATE messages SET delivered = ? WHERE id = ?")) {
+                    std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                        true,
+                        new_id
+                    };
+                    Database::executeUpdate(params);
+                } else {
+                    ThrowSQLError(ws, func_name);
+                    return;
+                }
+                delivered = true;
+            }
+
+            //Пытаемся отправить ответ себе же
+            json j = json{
+                {"action", "getNewMessage"},
+                {"id", new_id},
+                {"sender_uin", pack["UIN"]},
+                {"dest_uin", dest_uin},
+                {"sender_pseudonym", pseudonym},
+                {"dest_id", pack["dest_id"]},
+                {"message", pack["message"]},
+                {"time", timestamp},
+                {"is_chat", pack["is_chat"]},
+                {"delivered", delivered ? "true" : "false"},
+                {"is_my", "true"},
+            };
+            Answer(ws, ok, j);
+        } else {
+            ThrowSQLError(ws, func_name);
+            return;
+        }
     }
     return;
 }

@@ -27,6 +27,11 @@ bool validatePseudonym(const std::string& p) {
     return true;
 }
 
+bool validateMessage(const std::string& p) {
+    if (p.length() < 1 || p.length() > 5000) return false;
+    return true;
+}
+
 bool verifyPassword(const std::string& pwd, const std::string& storedHash) {
     // Извлекаем соль из сохранённого хеша
     size_t pos = storedHash.find(':');
@@ -185,6 +190,19 @@ bool VerifyPasswordEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const st
             {"message", "UIN или пароль неверный"},
         };
         Answer(ws, clientError, j);
+        return false;
+    }
+    return true;
+}
+
+bool validateMessageEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const std::string& p, std::string_view func_name) {
+    if(!validateMessage(p)) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Сообщение должно содержать не менее 1 символа и не более 5000"},
+        };
+        Answer(ws, clientError, j);
+        std::cerr << "Сообщение должно содержать не менее 1 символа и не более 5000" << std::endl;
         return false;
     }
     return true;

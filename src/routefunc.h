@@ -39,6 +39,9 @@ void KickUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack);
 void NewMessage(WebSocketType* ws, const nlohmann::json& pack);
+void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack);
+void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack);
+void SetDeliveredMessages(WebSocketType* ws, const nlohmann::json& pack);
 
 void Router(WebSocketType* ws, std::string_view message, const std::string& method, const nlohmann::json& pack) {
     if(method == "echo") { Echo(ws, message, pack); return; }
@@ -70,6 +73,9 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "changeRoleAdmin") { ChangeRoleAdmin(ws, pack); return; }
     if(method == "changeAddable") { ChangeAddable(ws, pack); return; }
     if(method == "newMessage") { NewMessage(ws, pack); return; }
+    if(method == "getLastMessages") { GetLastMessages(ws, pack); return; }
+    if(method == "getHistoryMessages") { GetHistoryMessages(ws, pack); return; }
+    if(method == "setDeliveredMessages") { SetDeliveredMessages(ws, pack); return; }
     
     json j = json{
         {"action", "router"},
@@ -1673,3 +1679,187 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
     }
     return;
 }
+
+void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "getLastMessages";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
+
+    if(!RequireField(ws, pack, "dest_id", func_name, "Нет передаваемого dest_id")) return;
+    if(!RequireField(ws, pack, "is_chat", func_name, "Нет передаваемого is_chat")) return;
+    if(!RequireField(ws, pack, "limit", func_name, "Нет передаваемого limit")) return;
+
+    long long int dest_id = getIntAnyway(pack["dest_id"]);
+    long long int limit = getIntAnyway(pack["limit"]);
+    bool is_chat = false;
+    if(pack["is_chat"].get<std::string>() == "true") {
+        is_chat = true;
+    } else if (pack["is_chat"].get<std::string>() == "false") {
+        is_chat = false;
+    } else {
+        json j = json{
+            {"action", func_name},
+            {"message", "Некорректный флаг is_chat"},
+        };
+        Answer(ws, clientError, j);
+        return;
+    }
+
+    if(!is_chat) {
+        //Проверяем, имеет ли этот пользователь доступ к этому контакту
+        json Contact = json{};
+        if (Database::prepareStatement("SELECT id FROM contacts WHERE (initiator_uin = ? OR destination_uin = ?) AND is_chat = ? AND id = ? AND is_approved = ?")) {
+            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                uin,
+                uin,
+                false,
+                dest_id,
+                true
+            };
+
+            Contact = Database::executeSelect(params);
+
+            if(Contact.empty()) {
+                json j = json{
+                    {"action", func_name},
+                    {"message", "Контакт не существует"},
+                };
+                Answer(ws, clientError, j);
+                return;
+            }
+        } else {
+            ThrowSQLError(ws, func_name);
+            return;
+        }
+
+        //Достаем сообщения
+        json Messages = json{};
+        if (Database::prepareStatement(R"(
+                SELECT *, 
+                    CASE 
+                        WHEN in_uin = ? THEN 1 
+                        ELSE 0 
+                    END AS is_my 
+                FROM messages WHERE dest_id = ? AND deleted = ? AND is_chat = ? ORDER BY ID DESC LIMIT )" + std::to_string(limit) + ";"
+            )) {
+            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                uin,
+                dest_id,
+                false,
+                is_chat
+            };
+
+            Messages = Database::executeSelect(params);
+            Answer(ws, ok, Messages);
+        } else {
+            ThrowSQLError(ws, func_name);
+            return;
+        }
+    }
+}
+
+void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "getHistoryMessages";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
+
+    if(!RequireField(ws, pack, "dest_id", func_name, "Нет передаваемого dest_id")) return;
+    if(!RequireField(ws, pack, "is_chat", func_name, "Нет передаваемого is_chat")) return;
+    if(!RequireField(ws, pack, "limit", func_name, "Нет передаваемого limit")) return;
+    if(!RequireField(ws, pack, "page", func_name, "Нет передаваемого limit")) return;
+
+    long long int dest_id = getIntAnyway(pack["dest_id"]);
+    long long int limit = getIntAnyway(pack["limit"]);
+    long long int page = getIntAnyway(pack["page"]);
+
+    if(page < 1) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Страница не может быть меньше 1"},
+        };
+        Answer(ws, clientError, j);
+        return;
+    }
+
+    bool is_chat = false;
+    if(pack["is_chat"].get<std::string>() == "true") {
+        is_chat = true;
+    } else if (pack["is_chat"].get<std::string>() == "false") {
+        is_chat = false;
+    } else {
+        json j = json{
+            {"action", func_name},
+            {"message", "Некорректный флаг is_chat"},
+        };
+        Answer(ws, clientError, j);
+        return;
+    }
+
+    if(!is_chat) {
+        //Проверяем, имеет ли этот пользователь доступ к этому контакту
+        json Contact = json{};
+        if (Database::prepareStatement("SELECT id FROM contacts WHERE (initiator_uin = ? OR destination_uin = ?) AND is_chat = ? AND id = ? AND is_approved = ?")) {
+            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                uin,
+                uin,
+                false,
+                dest_id,
+                true
+            };
+
+            Contact = Database::executeSelect(params);
+
+            if(Contact.empty()) {
+                json j = json{
+                    {"action", func_name},
+                    {"message", "Контакт не существует"},
+                };
+                Answer(ws, clientError, j);
+                return;
+            }
+        } else {
+            ThrowSQLError(ws, func_name);
+            return;
+        }
+
+        //Достаем сообщения
+        json Messages = json{};
+        if (Database::prepareStatement(R"(
+                SELECT *, 
+                    CASE 
+                        WHEN in_uin = ? THEN 1 
+                        ELSE 0 
+                    END AS is_my 
+                FROM messages WHERE dest_id = ? AND deleted = ? AND is_chat = ? ORDER BY id DESC LIMIT )" + std::to_string(limit) + " OFFSET " + std::to_string(limit * (page - 1)) + ";"
+            )) {
+            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                uin,
+                dest_id,
+                false,
+                is_chat
+            };
+
+            Messages = Database::executeSelect(params);
+            Answer(ws, ok, Messages);
+        } else {
+            ThrowSQLError(ws, func_name);
+            return;
+        }
+    }
+}
+
+void SetDeliveredMessages(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "setDeliveredMessages";
+    
+}
+

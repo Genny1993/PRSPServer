@@ -42,6 +42,7 @@
     <button onclick="sendNewMessage()">SendNewMessage</button>
     <button onclick="sendGetLastMessages()">SendGetLastMessages</button>
     <button onclick="sendGetHistoryMessages()">SendGetHistoryMessages</button>
+    <button onclick="sendSetDeliveredMessage()">SendSetDeliveredMessage</button>
     <div id="auth_key"></div>
     <div id="master_key"></div>
     <div id="log"></div>
@@ -474,6 +475,19 @@
                 '", "page": "' + document.getElementById('msg3').value +
                 '", "limit": 1' +
                 ', "is_chat": "false' + 
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendSetDeliveredMessage() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "setDeliveredMessage", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_id": "' + document.getElementById('msg2').value +
+                '", "dest_uin": "' + document.getElementById('msg3').value +
+                '", "message_id": "' + document.getElementById('msg4').value +
+                '", "is_chat": "false' + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }

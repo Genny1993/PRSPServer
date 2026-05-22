@@ -43,6 +43,9 @@
     <button onclick="sendGetLastMessages()">SendGetLastMessages</button>
     <button onclick="sendGetHistoryMessages()">SendGetHistoryMessages</button>
     <button onclick="sendSetDeliveredMessage()">SendSetDeliveredMessage</button>
+    <button onclick="sendSendTyping()">SendSendTyping</button>
+    <button onclick="sendDeleteMessage()">SendDeleteMessage</button>
+    <button onclick="sendEditMessage()">SendEditMessage</button>
     <div id="auth_key"></div>
     <div id="master_key"></div>
     <div id="log"></div>
@@ -487,6 +490,45 @@
                 '", "dest_id": "' + document.getElementById('msg2').value +
                 '", "dest_uin": "' + document.getElementById('msg3').value +
                 '", "message_id": "' + document.getElementById('msg4').value +
+                '", "is_chat": "false' + 
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendSendTyping() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "sendTyping", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_id": "' + document.getElementById('msg2').value +
+                '", "dest_uin": "' + document.getElementById('msg3').value +
+                '", "is_chat": "false' + 
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendDeleteMessage() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "deleteMessage", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_id": "' + document.getElementById('msg2').value +
+                '", "dest_uin": "' + document.getElementById('msg3').value +
+                '", "message_id": "' + document.getElementById('msg4').value +
+                '", "is_chat": "false' + 
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendEditMessage() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "editMessage", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_id": "' + document.getElementById('msg2').value +
+                '", "dest_uin": "' + document.getElementById('msg3').value +
+                '", "message_id": "' + document.getElementById('msg4').value +
+                '", "message": "' + document.getElementById('msg5').value +
                 '", "is_chat": "false' + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));

@@ -16,38 +16,33 @@
     <button onclick="sendLogin()">SendLogin</button>
     <button onclick="sendLogout()">SendLogout</button>
     <button onclick="sendIsAdmin()">SendIsAdmin</button>
-    <button onclick="sendChangePassword()">ChangePassword</button>
-    <button onclick="sendFindUsers()">FindUsers</button>
-    <button onclick="sendAddContact()">AddContact</button>
-    <button onclick="sendAcceptContact()">AcceptContact</button>
-    <button onclick="sendDeclineContact()">DeclineContact</button>
-    <button onclick="sendUndoAddContact()">UndoAddContact</button>
-    <button onclick="sendRemoveContact()">RemoveContact</button>
-    <button onclick="sendGetContacts()">GetContacts</button>
-    <button onclick="sendGetOutgoingRequests()">GetOutgoingRequests</button>
-    <button onclick="sendGetIncomingRequests()">GetIncomingRequests</button>
-    <button onclick="sendBroadcastOnline()">SendBroadcastOnline</button>
-    <button onclick="sendBroadcastOffline()">SendBroadcastOffline</button>
-    <button onclick="sendChangePseudonym()">SendChangePseudonym</button>
-    <button onclick="sendChangeStatus()">SendChangeStatus</button>
-    <button onclick="sendChangeAES()">SendChangeAES</button>
-    <button onclick="sendChangePasswordAdmin()">SendChangePasswordAdmin</button>
-    <button onclick="sendChangePseudonymAdmin()">SendChangePseudonymAdmin</button>
-    <button onclick="sendChangeStatusAdmin()">SendChangeStatusAdmin</button>
-    <button onclick="sendBanUserAdmin()">SendBanUserAdmin</button>
-    <button onclick="sendUnbanUserAdmin()">SendUnbanUserAdmin</button>
-    <button onclick="sendKickUserAdmin()">SendKickUserAdmin</button>
-    <button onclick="sendChangeRoleAdmin()">SendChangeRoleAdmin</button>
-    <button onclick="sendChangeAddable()">SendChangeAddable</button>
+    <button onclick="sendNewChat()">SendNewChat</button>
+    <button onclick="sendDeleteChat()">SendDeleteChat</button>
+    <button onclick="sendChangeChatName()">SendChangeChatName</button>
+    <button onclick="sendChangeChatDesc()">SendChangeChatDesc</button>
+    <button onclick="sendChangeChatOwner()">SendChangeChatOwner</button>
+    <button onclick="sendChangeUserChatPermAdmin()">SendChangeUserChatPermAdmin</button>
+    <button onclick="sendChangeUserChatCountAdmin()">SendchangeUserChatCountAdmin</button>
+    <button onclick="sendFindChats()">SendFindChats</button>
+    <button onclick="sendGetChats()">SendGetChats</button>
+    <button onclick="sendNewChatRequest()">SendNewChatRequest</button>
+    <button onclick="sendCancelChatRequest()">SendCancelChatRequest</button>
+    <button onclick="sendRejectChatRequest()">SendRejectChatRequest</button>
+    <button onclick="sendAcceptChatRequest()">SendAcceptChatRequest</button>
+    <button onclick="sendRemoveChatContact()">SendRemoveChatContact</button>
+    <button onclick="sendRemoveChatContactAdmin()">SendRemoveChatContactAdmin</button>
+    <button onclick="sendChangeChatUserRole()">SendChangeChatUserRole</button>
+    <button onclick="sendGetMyChats()">SendGetMyChats</button>
+    <button onclick="sendGetMyRequests()">SendGetMyRequests</button>
+    <button onclick="sendGetChatRequests()">SendGetChatRequests</button>
+    <button onclick="sendGetChatMembers()">SendGetChatMembers</button>
     <button onclick="sendNewMessage()">SendNewMessage</button>
     <button onclick="sendGetLastMessages()">SendGetLastMessages</button>
     <button onclick="sendGetHistoryMessages()">SendGetHistoryMessages</button>
-    <button onclick="sendSetDeliveredMessage()">SendSetDeliveredMessage</button>
-    <button onclick="sendSendTyping()">SendSendTyping</button>
+    <button onclick="sendSendTypingChat()">SendSendTypingChat</button>
     <button onclick="sendDeleteMessage()">SendDeleteMessage</button>
     <button onclick="sendEditMessage()">SendEditMessage</button>
     <button onclick="sendGetOneMessage()">SendGetOneMessage</button>
-    <button onclick="sendSendWakeUp()">SendSendWakeUp</button>
     <div id="auth_key"></div>
     <div id="master_key"></div>
     <div id="log"></div>
@@ -218,230 +213,258 @@
             }
         }
 
-        async function sendChangePassword() {
+        async function sendNewChat() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "changePassword", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
-                '", "old_password":"' + document.getElementById('msg2').value +
-                '", "new_password":"' + document.getElementById('msg3').value +
+                const text = '{"func": "newChat", ' + 
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_name": "' + document.getElementById('msg2').value + '",' +
+                ' "chat_description": "' + document.getElementById('msg3').value + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendFindUsers() {
+        async function sendDeleteChat() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "findUsers", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
-                '", "find_string":"' + document.getElementById('msg2').value +
+                const text = '{"func": "deleteChat", ' + 
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendChangeChatName() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "changeChatName", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value + '",' +
+                ' "chat_name": "' + document.getElementById('msg3').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
         
-        async function sendAddContact() {
+        async function sendChangeChatDesc() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "addContact", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
-                '", "contact_uin":"' + document.getElementById('msg2').value +
+                const text = '{"func": "changeChatDesc", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value + '",' +
+                ' "chat_description": "' + document.getElementById('msg3').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendAcceptContact() {
+        async function sendChangeChatOwner() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "acceptContact", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
-                '", "contact_id":"' + document.getElementById('msg2').value +
+                const text = '{"func": "changeChatOwner", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value + '",' +
+                ' "new_owner": "' + document.getElementById('msg3').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendDeclineContact() {
+        async function sendChangeChatOwner() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "declineContact", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
-                '", "contact_id":"' + document.getElementById('msg2').value +
+                const text = '{"func": "changeChatOwner", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value + '",' +
+                ' "new_owner": "' + document.getElementById('msg3').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendUndoAddContact() {
+        async function sendChangeUserChatPermAdmin() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "undoAddContact", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
-                '", "contact_id":"' + document.getElementById('msg2').value +
+                const text = '{"func": "changeUserChatPermAdmin", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "dest_uin": "' + document.getElementById('msg2').value + '",' +
+                ' "new_permission": "' + document.getElementById('msg3').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendRemoveContact() {
+        async function sendChangeUserChatCountAdmin() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "removeContact", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
-                '", "contact_id":"' + document.getElementById('msg2').value +
+                const text = '{"func": "changeUserChatCountAdmin", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "dest_uin": "' + document.getElementById('msg2').value + '",' +
+                ' "new_allowed_count": "' + document.getElementById('msg3').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendGetContacts() {
+        async function sendFindChats() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "getContacts", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
+                const text = '{"func": "findChats", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "find_string": "' + document.getElementById('msg2').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendGetOutgoingRequests() {
+        async function sendGetChats() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "getOutgoingRequests", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
+                const text = '{"func": "getChats", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "limit": "' + document.getElementById('msg2').value + '",' +
+                ' "page": "' + document.getElementById('msg3').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendGetIncomingRequests() {
+        async function sendNewChatRequest() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "getIncomingRequests", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
+                const text = '{"func": "newChatRequest", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendBroadcastOnline() {
+        async function sendCancelChatRequest() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "broadcastOnline", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
+                const text = '{"func": "cancelChatRequest", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "request_id": "' + document.getElementById('msg2').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg3').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendBroadcastOffline() {
+        async function sendRejectChatRequest() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "broadcastOffline", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
+                const text = '{"func": "rejectChatRequest", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "request_id": "' + document.getElementById('msg2').value + '",' +
+                ' "dest_uin": "' + document.getElementById('msg3').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg4').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendChangePseudonym() {
+        async function sendAcceptChatRequest() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "changePseudonym", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
-                '", "new_pseudonym": "' + document.getElementById('msg2').value + 
+                const text = '{"func": "acceptChatRequest", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "request_id": "' + document.getElementById('msg2').value + '",' +
+                ' "dest_uin": "' + document.getElementById('msg3').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg4').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendChangeStatus() {
+        async function sendRemoveChatContact() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "changeStatus", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
-                '", "new_status": "' + document.getElementById('msg2').value + 
+                const text = '{"func": "removeChatContact", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "request_id": "' + document.getElementById('msg2').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg3').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendChangeAES() {
+        async function sendRemoveChatContactAdmin() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "changeAES", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value + 
+                const text = '{"func": "removeChatContactAdmin", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "request_id": "' + document.getElementById('msg2').value + '",' +
+                ' "dest_uin": "' + document.getElementById('msg3').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg4').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendChangePasswordAdmin() {
+        async function sendChangeChatUserRole() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "changePasswordAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value +
-                '", "dest_uin": "' + document.getElementById('msg2').value +
-                '", "new_password": "' + document.getElementById('msg3').value +
+                const text = '{"func": "changeChatUserRole", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "request_id": "' + document.getElementById('msg2').value + '",' +
+                ' "dest_uin": "' + document.getElementById('msg3').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg4').value + '",' +
+                ' "role": "' + "[\\\"admin\\\"]" +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendChangePseudonymAdmin() {
+        async function sendGetMyChats() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "changePseudonymAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value +
-                '", "dest_uin": "' + document.getElementById('msg2').value +
-                '", "new_pseudonym": "' + document.getElementById('msg3').value +
+                const text = '{"func": "getMyChats", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "last_m_id": "' + document.getElementById('msg2').value + '",' +
+                ' "page": "' + "1" + '",' +
+                ' "limit": "' + "30" +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendChangeStatusAdmin() {
+        async function sendGetMyRequests() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "changeStatusAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value +
-                '", "dest_uin": "' + document.getElementById('msg2').value +
-                '", "new_status": "' + document.getElementById('msg3').value +
+                const text = '{"func": "getMyRequests", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "page": "' + "1" + '",' +
+                ' "limit": "' + "30" +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendBanUserAdmin() {
+        async function sendGetChatRequests() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "banUserAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value +
-                '", "dest_uin": "' + document.getElementById('msg2').value +
+                const text = '{"func": "getChatRequests", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value + '",' +
+                ' "page": "' + "1" + '",' +
+                ' "limit": "' + "30" +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendUnbanUserAdmin() {
+        async function sendGetChatMembers() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-               const text = '{"func": "unbanUserAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value +
-                '", "dest_uin": "' + document.getElementById('msg2').value +
-                '"}}';
-                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
-            }
-        }
-
-        async function sendKickUserAdmin() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "kickUserAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value +
-                '", "dest_uin": "' + document.getElementById('msg2').value +
-                '"}}';
-                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
-            }
-        }
-
-        async function sendChangeRoleAdmin() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "changeRoleAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value +
-                '", "dest_uin": "' + document.getElementById('msg2').value +
-                '", "roles": "' + document.getElementById('msg3').value +
-                '"}}';
-                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
-            }
-        }
-
-        async function sendChangeAddable() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "changeAddable", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value +
-                '", "addable": "' + document.getElementById('msg2').value +
+                const text = '{"func": "getChatMembers", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value + '",' +
+                ' "page": "' + "1" + '",' +
+                ' "limit": "' + "30" +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
@@ -451,11 +474,10 @@
             if (ws && ws.readyState === WebSocket.OPEN) {
                 const text = '{"func": "newMessage", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
                 '", "UIN": "' + document.getElementById('msg').value +
-                '", "dest_uin": "' + document.getElementById('msg2').value +
                 '", "dest_id": "' + document.getElementById('msg3').value +
                 '", "message": "' + document.getElementById('msg4').value +
                 '", "answer_id": "' + document.getElementById('msg5').value +
-                '", "is_chat": "false' + 
+                '", "is_chat": "true' + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
@@ -467,7 +489,7 @@
                 '", "UIN": "' + document.getElementById('msg').value +
                 '", "dest_id": "' + document.getElementById('msg2').value +
                 '", "limit": 100' +
-                ', "is_chat": "false' + 
+                ', "is_chat": "true' + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
@@ -480,32 +502,17 @@
                 '", "dest_id": "' + document.getElementById('msg2').value +
                 '", "page": "' + document.getElementById('msg3').value +
                 '", "limit": 1' +
-                ', "is_chat": "false' + 
+                ', "is_chat": "true' + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
         }
 
-        async function sendSetDeliveredMessage() {
+        async function sendSendTypingChat() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "setDeliveredMessage", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                const text = '{"func": "sendTypingChat", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
                 '", "UIN": "' + document.getElementById('msg').value +
-                '", "dest_id": "' + document.getElementById('msg2').value +
-                '", "dest_uin": "' + document.getElementById('msg3').value +
-                '", "message_id": "' + document.getElementById('msg4').value +
-                '", "is_chat": "false' + 
-                '"}}';
-                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
-            }
-        }
-
-        async function sendSendTyping() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "sendTyping", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value +
-                '", "dest_id": "' + document.getElementById('msg2').value +
-                '", "dest_uin": "' + document.getElementById('msg3').value +
-                '", "is_chat": "false' + 
+                '", "chat_id": "' + document.getElementById('msg2').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
@@ -516,9 +523,8 @@
                 const text = '{"func": "deleteMessage", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
                 '", "UIN": "' + document.getElementById('msg').value +
                 '", "dest_id": "' + document.getElementById('msg2').value +
-                '", "dest_uin": "' + document.getElementById('msg3').value +
-                '", "message_id": "' + document.getElementById('msg4').value +
-                '", "is_chat": "false' + 
+                '", "message_id": "' + document.getElementById('msg3').value +
+                '", "is_chat": "true' + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
@@ -529,10 +535,9 @@
                 const text = '{"func": "editMessage", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
                 '", "UIN": "' + document.getElementById('msg').value +
                 '", "dest_id": "' + document.getElementById('msg2').value +
-                '", "dest_uin": "' + document.getElementById('msg3').value +
-                '", "message_id": "' + document.getElementById('msg4').value +
-                '", "message": "' + document.getElementById('msg5').value +
-                '", "is_chat": "false' + 
+                '", "message_id": "' + document.getElementById('msg3').value +
+                '", "message": "' + document.getElementById('msg4').value +
+                '", "is_chat": "true' + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }
@@ -543,18 +548,6 @@
                 const text = '{"func": "getOneMessage", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
                 '", "UIN": "' + document.getElementById('msg').value +
                 '", "message_id": "' + document.getElementById('msg2').value +
-                '"}}';
-                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
-            }
-        }
-        
-        async function sendSendWakeUp() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                const text = '{"func": "sendWakeUp", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
-                '", "UIN": "' + document.getElementById('msg').value +
-                '", "dest_id": "' + document.getElementById('msg2').value +
-                '", "dest_uin": "' + document.getElementById('msg3').value +
-                '", "is_chat": "false' + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }

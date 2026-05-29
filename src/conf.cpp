@@ -70,6 +70,26 @@ void Conf::setValue(const std::string& key, const std::string& value) {
     
         result.resize(len);
         master_key_bin = result;
+    } else if(key == "freereg") {
+        if(value == "true") {
+            freereg = true;
+        }
+        else if(value == "false") {
+            freereg = false;
+        }
+        else {
+            std::cerr << "⚠️ Неверное значение freereg (необходимы только значения true, false): " << value << std::endl;
+        }
+    } else if(key == "privatemessages") {
+        if(value == "true") {
+            privatemessages = true;
+        }
+        else if(value == "false") {
+            privatemessages = false;
+        }
+        else {
+            std::cerr << "⚠️ Неверное значение privatemessages (необходимы только значения true, false): " << value << std::endl;
+        }
     }
 }
 
@@ -125,5 +145,7 @@ void Conf::printAll() {
     std::cout << "🔐 Database Password: " << std::string(dbpassword.length(), '*') << std::endl;
     std::cout << "🌐 Service Port: " << serviceport << std::endl;
     std::cout << "🔐 Master Key: " << master_key << std::endl;
+    std::cout << "🔐 Free Registration: " << (freereg ? "true" : "false") << std::endl;
+    std::cout << "💬 Private Messages: " << (privatemessages ? "true" : "false") << std::endl;
     std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" << std::endl;
 }

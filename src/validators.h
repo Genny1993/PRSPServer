@@ -12,14 +12,12 @@
 bool validatePassword(const std::string& p) {
     if (p.length() < 8 || p.length() > 30) return false;
     
-    bool lower = false, upper = false, digit = false, special = false;
+    bool hasLetter = false, hasDigit = false;
     for (char c : p) {
-        lower = lower || std::islower(c);
-        upper = upper || std::isupper(c);
-        digit = digit || std::isdigit(c);
-        special = special || std::ispunct(c) || c == ' ';
+        hasLetter = hasLetter || std::isalpha(c);
+        hasDigit = hasDigit || std::isdigit(c);
     }
-    return lower && upper && digit && special;
+    return hasLetter && hasDigit;
 }
 
 bool validatePseudonym(const std::string& p) {
@@ -53,6 +51,8 @@ bool verifyPassword(const std::string& pwd, const std::string& storedHash) {
 }
 
 bool verifyAuth(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int uin, const std::string& token) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     if(WsServer::authKeys.find(uin) != WsServer::authKeys.end()) {
         if(WsServer::authKeys[uin]["auth_key"] == token && WsServer::authKeys[uin]["is_active"] == "1") {
             return true;
@@ -86,6 +86,7 @@ bool verifyAuth(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int u
 }
 
 bool verifyRole(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int uin, const std::vector<std::string>& roles) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     
     if(WsServer::authKeys.find(uin) != WsServer::authKeys.end()) {
         json parsedJson = json::parse(WsServer::authKeys[uin]["roles"]);
@@ -136,10 +137,10 @@ bool validatePasswordEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const 
     if(!validatePassword(p)) {
         json j = json{
             {"action", func_name},
-            {"message", "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол"},
+            {"message", "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы 1 букву и хотя бы 1 цифру"},
         };
         Answer(ws, clientError, j);
-        std::cerr << "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол" << std::endl;
+        std::cerr << "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы 1 букву и хотя бы 1 цифру" << std::endl;
         return false;
     }
     return true;

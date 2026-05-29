@@ -32,12 +32,13 @@ bool Database::debug = false;
                 {"port", std::to_string(port)},
                 {"userName", username},
                 {"password", password},
-                {"schema", database}
+                {"schema", database},
+                {"autoReconnect", "true"}
             });
             
             // Устанавливаем соединение
             connection.reset(driver->connect(properties));
-            
+
             isConnected = true;
             lastError.clear();
             

@@ -23,6 +23,8 @@ private:
     inline static bool debug = false;
     inline static std::string master_key = "";
     inline static std::vector<unsigned char> master_key_bin;
+    inline static bool freereg = false;
+    inline static bool privatemessages = false;
     
     inline static std::mutex mutex;
     inline static bool is_loaded = false;
@@ -85,6 +87,16 @@ public:
     static std::vector<unsigned char> getMasterKeyBin() {
         std::lock_guard<std::mutex> lock(mutex);
         return master_key_bin;
+    }
+
+    static bool getFreeReg() {
+        std::lock_guard<std::mutex> lock(mutex);
+        return freereg;
+    }
+
+    static bool getPrivateMessages() {
+        std::lock_guard<std::mutex> lock(mutex);
+        return privatemessages;
     }
 
     // Отображение всех настроек (для отладки)

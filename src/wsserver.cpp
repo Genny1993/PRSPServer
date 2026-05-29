@@ -5,7 +5,7 @@
 std::unique_ptr<uWS::App> WsServer::app = nullptr;
 std::unordered_map<long long int, uWS::WebSocket<false, true, std::nullptr_t>*> WsServer::authorizedSockets;
 std::unordered_map<long long int, std::unordered_map<std::string, std::string>> WsServer::authKeys;
-std::mutex WsServer::socketsMutex;
+std::recursive_mutex WsServer::globalMutex;
 bool WsServer::debug = false;
 
     void WsServer::setDebug(bool val) {
@@ -16,7 +16,7 @@ bool WsServer::debug = false;
      * Добавление нового сокета в список активных соединений
      */
     void WsServer::addSocket(uWS::WebSocket<false, true, std::nullptr_t>* ws, std::string auth_key, std::string roles, std::string aes, std::string is_active, long long int uin, std::string pseudonym, std::string status) {
-        std::lock_guard<std::mutex> lock(socketsMutex);
+        std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
         authorizedSockets[uin] = ws;
         authKeys[uin] = {
             {"auth_key", auth_key},
@@ -42,7 +42,7 @@ bool WsServer::debug = false;
      * Удаление сокета из списка активных соединений
      */
     void WsServer::removeSocket(uWS::WebSocket<false, true, std::nullptr_t>* ws) {
-        std::lock_guard<std::mutex> lock(socketsMutex);
+        std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
         
         // Ищем по значению (WebSocket*)
         for (auto it = authorizedSockets.begin(); it != authorizedSockets.end(); ++it) {
@@ -97,6 +97,7 @@ bool WsServer::debug = false;
             
             // Обработчик входящих сообщений
             .message = [](WebSocketType* ws, std::string_view message, uWS::OpCode opCode) {
+                std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
                 (void)opCode;
                 
                 if(debug) {
@@ -209,12 +210,14 @@ bool WsServer::debug = false;
                             {"action", "startpoint"},
                             {"message", "String error: " + e},
                         };
+                        Answer(ws, serverError, j);
                     } catch (...) {
                         // Любая неизвестная ошибка
                         nlohmann::json j = nlohmann::json {
                             {"action", "startpoint"},
                             {"message", "Unknown exception (non-standard)"},
                         };
+                        Answer(ws, serverError, j);
                     }
                     return;
 
@@ -236,7 +239,7 @@ bool WsServer::debug = false;
             
             // Обработчик закрытия соединения
             .close = [](WebSocketType* ws, int code, std::string_view message) {
-                
+                std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
                 removeSocket(ws);
                 
                 if(debug) {

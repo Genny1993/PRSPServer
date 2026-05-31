@@ -191,6 +191,8 @@ void Login(WebSocketType* ws, const nlohmann::json& pack) {
                 {"action", func_name},
                 {"auth_token", token},
                 {"aes", verifyUser[0]["aes_encryption_key"]},
+                {"pseudonym", verifyUser[0]["pseudonym"]},
+                {"status", verifyUser[0]["status"]}
             };
             Answer(ws, ok, j);
             return;
@@ -214,6 +216,8 @@ void Login(WebSocketType* ws, const nlohmann::json& pack) {
                     {"action", func_name},
                     {"auth_token", token},
                     {"aes", verifyUser[0]["aes_encryption_key"]},
+                    {"pseudonym", verifyUser[0]["pseudonym"]},
+                    {"status", verifyUser[0]["status"]}
                 };
                 Answer(ws, ok, j);
                 return;

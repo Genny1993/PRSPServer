@@ -156,7 +156,7 @@ void Login(WebSocketType* ws, const nlohmann::json& pack) {
 
     long long uin = getIntAnyway(pack["UIN"]);
 
-    if (Database::prepareStatement("SELECT password_hash, auth_token, aes_encryption_key, roles, is_active, pseudonym, status FROM users WHERE UIN = ? AND is_active = ?")) {
+    if (Database::prepareStatement("SELECT password_hash, auth_token, aes_encryption_key, roles, is_active, pseudonym, status, is_addable FROM users WHERE UIN = ? AND is_active = ?")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
             uin,
             true
@@ -192,7 +192,8 @@ void Login(WebSocketType* ws, const nlohmann::json& pack) {
                 {"auth_token", token},
                 {"aes", verifyUser[0]["aes_encryption_key"]},
                 {"pseudonym", verifyUser[0]["pseudonym"]},
-                {"status", verifyUser[0]["status"]}
+                {"status", verifyUser[0]["status"]},
+                {"is_addable", verifyUser[0]["is_addable"]},
             };
             Answer(ws, ok, j);
             return;

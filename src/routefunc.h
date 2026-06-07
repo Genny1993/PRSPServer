@@ -842,13 +842,38 @@ void GetContacts(WebSocketType* ws, const nlohmann::json& pack) {
     long long int uin = getIntAnyway(pack["UIN"]);
 
     json Contacts = json{};
-      if (Database::prepareStatement("SELECT c.id, CASE WHEN c.initiator_uin = ? THEN c.destination_uin ELSE c.initiator_uin END AS UIN, CASE WHEN c.initiator_uin = ? THEN dest_user.pseudonym ELSE init_user.pseudonym END AS pseudonym, CASE WHEN c.initiator_uin = ? THEN 'initiator' ELSE 'destination' END AS my_role, CASE WHEN c.initiator_uin = ? THEN dest_user.status ELSE init_user.status END AS status, CASE WHEN c.initiator_uin = ? THEN dest_user.is_active ELSE init_user.is_active END AS is_active, c.is_approved FROM contacts c LEFT JOIN users init_user ON c.initiator_uin = init_user.UIN LEFT JOIN users dest_user ON c.destination_uin = dest_user.UIN WHERE (c.initiator_uin = ? OR c.destination_uin = ?) AND c.is_approved = ?")) {
+      if (Database::prepareStatement(
+        "SELECT " 
+            "c.id, " 
+            "CASE WHEN c.initiator_uin = ? THEN c.destination_uin ELSE c.initiator_uin END AS UIN, " 
+            "CASE WHEN c.initiator_uin = ? THEN dest_user.pseudonym ELSE init_user.pseudonym END AS pseudonym, "
+            "CASE WHEN c.initiator_uin = ? THEN 'initiator' ELSE 'destination' END AS my_role, " 
+            "CASE WHEN c.initiator_uin = ? THEN dest_user.status ELSE init_user.status END AS status, "
+            "CASE WHEN c.initiator_uin = ? THEN dest_user.is_active ELSE init_user.is_active END AS is_active, "
+            "c.is_approved, "
+            "( "
+                "SELECT COUNT(*) " 
+                "FROM messages m " 
+                "WHERE m.dest_uin = ? "
+                "AND m.delivered = ? "
+                "AND is_chat = ? "
+                "AND dest_id = c.id "
+            ") AS undelivered_count "
+        "FROM contacts c " 
+        "LEFT JOIN users init_user ON c.initiator_uin = init_user.UIN " 
+        "LEFT JOIN users dest_user ON c.destination_uin = dest_user.UIN " 
+        "WHERE (c.initiator_uin = ? OR c.destination_uin = ?) AND c.is_approved = ? "
+        "ORDER BY c.id ASC"
+        )) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
             uin,
             uin,
             uin,
             uin,
             uin,
+            uin,
+            false,
+            false,
             uin,
             uin,
             true
@@ -1641,7 +1666,7 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
             //Пытаемся отправить сообщение другому пользователю.
             if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
                 json j = json{
-                    {"action", "getNewMessage"},
+                    {"action", "getNewMessageReciever"},
                     {"id", new_id},
                     {"sender_uin", pack["UIN"]},
                     {"dest_uin", dest_uin},
@@ -1650,27 +1675,15 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
                     {"message", pack["message"]},
                     {"time", timestamp},
                     {"is_chat", pack["is_chat"]},
-                    {"delivered", "true"},
+                    {"delivered", "false"},
                     {"is_my", "false"},
                 };
                 Answer(WsServer::authorizedSockets[dest_uin], ok, j);
-
-                if (Database::prepareStatement("UPDATE messages SET delivered = ? WHERE id = ?")) {
-                    std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                        true,
-                        new_id
-                    };
-                    Database::executeUpdate(params);
-                } else {
-                    ThrowSQLError(ws, func_name);
-                    return;
-                }
-                delivered = true;
             }
 
             //Пытаемся отправить ответ себе же
             json j = json{
-                {"action", "getNewMessage"},
+                {"action", "getNewMessageSender"},
                 {"id", new_id},
                 {"sender_uin", pack["UIN"]},
                 {"dest_uin", dest_uin},
@@ -1766,7 +1779,12 @@ void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
             };
 
             Messages = Database::executeSelect(params);
-            Answer(ws, ok, Messages);
+            //Отправляем ответ клиенту
+            json j = json{
+                {"action", func_name},
+                {"messages", Messages},
+            };
+            Answer(ws, ok, j);
         } else {
             ThrowSQLError(ws, func_name);
             return;
@@ -1861,7 +1879,12 @@ void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
             };
 
             Messages = Database::executeSelect(params);
-            Answer(ws, ok, Messages);
+            //Отправляем ответ клиенту
+            json j = json{
+                {"action", func_name},
+                {"messages", Messages},
+            };
+            Answer(ws, ok, j);
         } else {
             ThrowSQLError(ws, func_name);
             return;

@@ -110,7 +110,11 @@ void Register(WebSocketType* ws, const nlohmann::json& pack) {
     std::string roles = "[\"user\"]";
     std::string status = "👋 Привет, мир!";
     std::string aes = "";
-    bool is_active = true;
+
+    bool is_active = false;
+    if(Conf::getFreeReg()) {
+        is_active = true;
+    }
 
     try {
         aes = generateAES();
@@ -124,7 +128,7 @@ void Register(WebSocketType* ws, const nlohmann::json& pack) {
         return;
     }
 
-    if (Database::prepareStatement("INSERT INTO users (password_hash, pseudonym, status, roles, registration_date, is_active, aes_encryption_key) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+    if (Database::prepareStatement("INSERT INTO users (password_hash, pseudonym, status, roles, registration_date, is_active, aes_encryption_key, chat_enabled, max_chats_allowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
             password_hash,
             pseudonym,
@@ -132,7 +136,9 @@ void Register(WebSocketType* ws, const nlohmann::json& pack) {
             roles,
             timestamp,
             is_active,
-            aes
+            aes,
+            true,
+            1
         };
         
         long long newId = Database::executeInsertAndGetId(params);
@@ -1568,6 +1574,14 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
     }
 
     if(!is_chat) {
+        if(!Conf::getPrivateMessages()) {
+            json j = json{
+                {"action", func_name},
+                {"message", "Возможность личного общения запрещена на сервере"},
+            };
+            Answer(ws, clientError, j);
+            return;
+        }
         if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого UIN назначения")) return;
         long long int dest_uin = getIntAnyway(pack["dest_uin"]);
 

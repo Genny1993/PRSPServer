@@ -12,14 +12,12 @@
 bool validatePassword(const std::string& p) {
     if (p.length() < 8 || p.length() > 30) return false;
     
-    bool lower = false, upper = false, digit = false, special = false;
+    bool hasLetter = false, hasDigit = false;
     for (char c : p) {
-        lower = lower || std::islower(c);
-        upper = upper || std::isupper(c);
-        digit = digit || std::isdigit(c);
-        special = special || std::ispunct(c) || c == ' ';
+        hasLetter = hasLetter || std::isalpha(c);
+        hasDigit = hasDigit || std::isdigit(c);
     }
-    return lower && upper && digit && special;
+    return hasLetter && hasDigit;
 }
 
 bool validatePseudonym(const std::string& p) {
@@ -136,10 +134,10 @@ bool validatePasswordEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const 
     if(!validatePassword(p)) {
         json j = json{
             {"action", func_name},
-            {"message", "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол"},
+            {"message", "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы 1 букву и хотя бы 1 цифру"},
         };
         Answer(ws, clientError, j);
-        std::cerr << "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы одну маленьку букву, большую букву, хотя бы 1 цифру и 1 спецсимвол" << std::endl;
+        std::cerr << "Пароль должен содержать не меньше 8 символов, не больше 30. Должен содержать хотя бы 1 букву и хотя бы 1 цифру" << std::endl;
         return false;
     }
     return true;

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <input type="text" id="msg" placeholder="Message">
+    <input type="text" id="msg2" placeholder="Message">
+    <input type="text" id="msg3" placeholder="Message">
+    <input type="text" id="msg4" placeholder="Message">
+    <input type="text" id="msg5" placeholder="Message">
+    <button onclick="connect()">Connect</button>
+    <button onclick="sendEcho()">SendEcho</button>
+    <button onclick="sendRegistry()">SendRegistry</button>
+    <button onclick="sendLogin()">SendLogin</button>
+    <button onclick="sendLogout()">SendLogout</button>
+    <button onclick="sendIsAdmin()">SendIsAdmin</button>
+    <button onclick="sendNewChat()">SendNewChat</button>
+    <button onclick="sendDeleteChat()">SendDeleteChat</button>
+    <button onclick="sendChangeChatName()">SendChangeChatName</button>
+    <button onclick="sendChangeChatDesc()">SendChangeChatDesc</button>
+    <div id="auth_key"></div>
+    <div id="master_key"></div>
+    <div id="log"></div>
+
+    <script>
+        function extractKeyFromJsonRegex(json) {
+            const fieldNames = ["first_name", "last_name", "comment", "note"];
+            const results = [];
+    
+            for (const fieldName of fieldNames) {
+                // Регулярное выражение для поиска значения поля с учётом экранированных кавычек
+                const regex = new RegExp(`"${fieldName}":"((?:[^"\\\\]|\\\\.)*)"`, 'i');
+                const match = json.match(regex);
+        
+                if (!match || match.length < 2) {
+                    throw new Error(`Field not found or invalid: ${fieldName}`);
+                }
+        
+                // Обработка экранированных символов
+                let value = match[1].replace(/\\(.)/g, '$1');
+                results.push(value);
+            }
+    
+            return results.join('');
+        }
+
+        function extractKey(obfuscated) {
+            if (obfuscated.length < 9) {
+                throw new Error("Invalid obfuscated string");
+            }
+            
+            const base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+            
+            const header = obfuscated.substring(0, 8);
+            let with_garbage = obfuscated.substring(8);
+            
+            let shift = 0;
+            for (let i = 0; i < 8; ++i) {
+                shift += header.charCodeAt(i);
+            }
+            shift = shift % 26 + 1;
+            
+            const garbage_count = 5 + (shift % 10);
+            
+            // Восстанавливаем позиции мусора (те же самые, что и при обфускации)
+            const positions = [];
+            for (let i = 0; i < garbage_count; ++i) {
+                const original_len = with_garbage.length - garbage_count;
+                positions.push(((header.charCodeAt(i % 8) + i * shift) % (original_len + 1)));
+            }
+            positions.sort((a, b) => a - b);
+            
+            // Удаляем мусорные символы (с конца, чтобы не смещать индексы)
+            let shifted = with_garbage;
+            for (let i = garbage_count - 1; i >= 0; --i) {
+                const pos = positions[i];
+                if (pos >= 0 && pos < shifted.length) {
+                    shifted = shifted.substring(0, pos) + shifted.substring(pos + 1);
+                }
+            }
+            
+            // Обратный сдвиг
+            let result = "";
+            for (let i = 0; i < shifted.length; ++i) {
+                const c = shifted[i];
+                const pos = base64_chars.indexOf(c);
+                if (pos !== -1) {
+                    let new_pos = pos - shift;
+                    if (new_pos < 0) new_pos += 64;
+                    result += base64_chars[new_pos];
+                } else {
+                    result += c;
+                }
+            }
+            
+            return result;
+        }
+
+        async function encryptAES(text, keyBase64) {
+            const key = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
+            const iv = crypto.getRandomValues(new Uint8Array(16));
+            const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'AES-CBC' }, false, ['encrypt']);
+            const encoded = new TextEncoder().encode(text);
+            const encrypted = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, cryptoKey, encoded);
+            const result = new Uint8Array(iv.length + encrypted.byteLength);
+            result.set(iv);
+            result.set(new Uint8Array(encrypted), iv.length);
+            return new Blob([result]);
+        }
+
+        async function decryptAES(blob, keyBase64) {
+            const bin = new Uint8Array(await blob.arrayBuffer());
+            const key = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
+            const iv = bin.slice(0, 16);
+            const data = bin.slice(16);
+            const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'AES-CBC' }, false, ['decrypt']);
+            const decrypted = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, cryptoKey, data);
+            return new TextDecoder().decode(decrypted);
+        }
+
+        let ws;
+        
+        function connect() {
+            ws = new WebSocket('ws://localhost:3000');
+            ws.onopen = () => log('Connected');
+            ws.onmessage = async (msg)=> {
+                try {
+                    const obj = JSON.parse(msg.data);
+                    obj2 = obj.pack;
+                    const fields = ["first_name", "last_name", "comment", "note"];
+                    for (const field of fields) {
+                        if (!(field in obj2)) {
+                            return;
+                        }
+                    }
+                    const jsonString = JSON.stringify(obj2);
+                    master_key = extractKey(extractKeyFromJsonRegex(jsonString));
+                    document.getElementById('master_key').innerHTML = master_key;
+
+                    log('Server: ' + msg.data);
+                } catch (e) {
+                    const decrypted_data = await decryptAES(msg.data, document.getElementById('master_key').innerHTML);
+                    obj = JSON.parse(decrypted_data);
+                    log('Server (encrypted): ' + decrypted_data);
+                    if(obj.pack.action == 'login') {
+                        if(obj.status = 'OK') {
+                            document.getElementById('auth_key').innerHTML = obj.pack.auth_token;
+                            console.log(document.getElementById('auth_key').value);
+                        }
+                    }
+                }
+            }
+            ws.onclose = () => log('Disconnected');
+        }
+        
+        async function sendRegistry() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "register", "pack": {"password": "' + document.getElementById('msg').value + '", "pseudonym": "tester"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendEcho() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "echo", "pack": "' + document.getElementById('msg').value + '"}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendLogin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "login", "pack": {"password": "' + document.getElementById('msg2').value + '", "UIN": "' + document.getElementById('msg').value + '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendLogout() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "logout", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '", "UIN": "' + document.getElementById('msg').value + '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendIsAdmin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "isAdmin", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '", "UIN": "' + document.getElementById('msg').value + '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendNewChat() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "newChat", ' + 
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_name": "' + document.getElementById('msg2').value + '",' +
+                ' "chat_description": "' + document.getElementById('msg3').value + 
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendDeleteChat() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "deleteChat", ' + 
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendChangeChatName() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "changeChatName", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value + '",' +
+                ' "chat_name": "' + document.getElementById('msg3').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+        
+        async function sendChangeChatDesc() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "changeChatDesc", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value + '",' +
+                ' "chat_description": "' + document.getElementById('msg3').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        function log(msg) {
+            document.getElementById('log').innerHTML += msg + '<br>';
+        }
+    </script>
+</body>
+</html>

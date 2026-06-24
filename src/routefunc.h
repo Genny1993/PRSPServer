@@ -6,6 +6,7 @@
 #include "validators.h"
 #include "database.h"
 #include "crypt.h"
+#include "chat_func.h"
 
 void Router(WebSocketType* ws, std::string_view message, const std::string& method, const nlohmann::json& pack);
 
@@ -82,6 +83,11 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "sendTyping") { SendTyping(ws, pack); return; }
     if(method == "deleteMessage") { DeleteMessage(ws, pack); return; }
     if(method == "editMessage") { EditMessage(ws, pack); return; }
+
+    if(method == "newChat") { NewChat(ws, pack); return; }
+    if(method == "deleteChat") { DeleteChat(ws, pack); return; }
+    if(method == "changeChatName") { ChangeChatName(ws, pack); return; }
+    if(method == "changeChatDesc") { ChangeChatDesc(ws, pack); return; }
     
     json j = json{
         {"action", "router"},
@@ -373,7 +379,6 @@ void FindUsers(WebSocketType* ws, const nlohmann::json& pack) {
             {"message", "Строка поиска не должна быть менее 3 символов"},
         };
         Answer(ws, clientError, j);
-        std::cerr << "Строка поиска не должна быть менее 3 символов" << std::endl;
         return;
     };
 

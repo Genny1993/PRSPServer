@@ -41,7 +41,7 @@ target_link_libraries(prsp
     ${CMAKE_THREAD_LIBS_INIT}
     ${ZLIB_LIBRARIES}
     /usr/local/lib/uSockets.a
-    /usr/lib64/mariadb/libmariadbcpp.so   # <- явно указываем путь
+    /usr/lib64/mariadb/libmariadbcpp.so
 )
 
 # Определения

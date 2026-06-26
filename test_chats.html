@@ -20,6 +20,11 @@
     <button onclick="sendDeleteChat()">SendDeleteChat</button>
     <button onclick="sendChangeChatName()">SendChangeChatName</button>
     <button onclick="sendChangeChatDesc()">SendChangeChatDesc</button>
+    <button onclick="sendChangeChatOwner()">SendChangeChatOwner</button>
+    <button onclick="sendChangeUserChatPermAdmin()">SendChangeUserChatPermAdmin</button>
+    <button onclick="sendChangeUserChatCountAdmin()">SendchangeUserChatCountAdmin</button>
+    <button onclick="sendFindChats()">SendFindChats</button>
+    <button onclick="sendGetChats()">SendGetChats</button>
     <div id="auth_key"></div>
     <div id="master_key"></div>
     <div id="log"></div>
@@ -232,6 +237,77 @@
                 ' "UIN": "' + document.getElementById('msg').value + '",' +
                 ' "chat_id": "' + document.getElementById('msg2').value + '",' +
                 ' "chat_description": "' + document.getElementById('msg3').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendChangeChatOwner() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "changeChatOwner", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value + '",' +
+                ' "new_owner": "' + document.getElementById('msg3').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendChangeChatOwner() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "changeChatOwner", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value + '",' +
+                ' "new_owner": "' + document.getElementById('msg3').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendChangeUserChatPermAdmin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "changeUserChatPermAdmin", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "dest_uin": "' + document.getElementById('msg2').value + '",' +
+                ' "new_permission": "' + document.getElementById('msg3').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendChangeUserChatCountAdmin() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "changeUserChatCountAdmin", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "dest_uin": "' + document.getElementById('msg2').value + '",' +
+                ' "new_allowed_count": "' + document.getElementById('msg3').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendFindChats() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "findChats", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "find_string": "' + document.getElementById('msg2').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendGetChats() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "getChats", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "limit": "' + document.getElementById('msg2').value + '",' +
+                ' "page": "' + document.getElementById('msg3').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }

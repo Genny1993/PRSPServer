@@ -88,6 +88,11 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "deleteChat") { DeleteChat(ws, pack); return; }
     if(method == "changeChatName") { ChangeChatName(ws, pack); return; }
     if(method == "changeChatDesc") { ChangeChatDesc(ws, pack); return; }
+    if(method == "changeChatOwner") { ChangeChatOwner(ws, pack); return; }
+    if(method == "changeUserChatPermAdmin") { ChangeUserChatPermAdmin(ws, pack); return; }
+    if(method == "changeUserChatCountAdmin") { ChangeUserChatCountAdmin(ws, pack); return; }
+    if(method == "findChats") { FindChats(ws, pack); return; }
+    if(method == "getChats") { GetChats(ws, pack); return; }
     
     json j = json{
         {"action", "router"},
@@ -1824,7 +1829,7 @@ void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
     if(!RequireField(ws, pack, "dest_id", func_name, "Нет передаваемого dest_id")) return;
     if(!RequireField(ws, pack, "is_chat", func_name, "Нет передаваемого is_chat")) return;
     if(!RequireField(ws, pack, "limit", func_name, "Нет передаваемого limit")) return;
-    if(!RequireField(ws, pack, "page", func_name, "Нет передаваемого limit")) return;
+    if(!RequireField(ws, pack, "page", func_name, "Нет передаваемого page")) return;
 
     long long int dest_id = getIntAnyway(pack["dest_id"]);
     long long int limit = getIntAnyway(pack["limit"]);

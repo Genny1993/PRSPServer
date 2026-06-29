@@ -93,6 +93,8 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "changeUserChatCountAdmin") { ChangeUserChatCountAdmin(ws, pack); return; }
     if(method == "findChats") { FindChats(ws, pack); return; }
     if(method == "getChats") { GetChats(ws, pack); return; }
+    if(method == "newChatRequest") { NewChatRequest(ws, pack); return; }
+    if(method == "cancelChatRequest") { CancelChatRequest(ws, pack); return; }
     
     json j = json{
         {"action", "router"},

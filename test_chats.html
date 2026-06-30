@@ -27,6 +27,8 @@
     <button onclick="sendGetChats()">SendGetChats</button>
     <button onclick="sendNewChatRequest()">SendNewChatRequest</button>
     <button onclick="sendCancelChatRequest()">SendCancelChatRequest</button>
+    <button onclick="sendRejectChatRequest()">SendRejectChatRequest</button>
+    <button onclick="sendAcceptChatRequest()">SendAcceptChatRequest</button>
     <div id="auth_key"></div>
     <div id="master_key"></div>
     <div id="log"></div>
@@ -333,6 +335,32 @@
                 ' "UIN": "' + document.getElementById('msg').value + '",' +
                 ' "request_id": "' + document.getElementById('msg2').value + '",' +
                 ' "chat_id": "' + document.getElementById('msg3').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendRejectChatRequest() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "rejectChatRequest", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "request_id": "' + document.getElementById('msg2').value + '",' +
+                ' "dest_uin": "' + document.getElementById('msg3').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg4').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendAcceptChatRequest() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "acceptChatRequest", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "request_id": "' + document.getElementById('msg2').value + '",' +
+                ' "dest_uin": "' + document.getElementById('msg3').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg4').value +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }

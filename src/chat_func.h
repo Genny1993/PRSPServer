@@ -29,6 +29,8 @@ void NewChat(WebSocketType* ws, const nlohmann::json& pack) {
 
     bool is_admin = verifyRole(ws, uin, {"admin"});
 
+    long long new_id = 0;
+
     if(!is_admin) {
         //Проверяем возможость создания чата
         json Permission = json{};
@@ -77,7 +79,6 @@ void NewChat(WebSocketType* ws, const nlohmann::json& pack) {
             Answer(ws, clientError, j);
             return;
         } else if(Permission[0]["can_create_chat"].get<int>() == 2 ) {
-            long long new_id = 0;
 
             //Пытаемся вставить чат в базу данных
             if (Database::prepareStatement(
@@ -96,22 +97,9 @@ void NewChat(WebSocketType* ws, const nlohmann::json& pack) {
                 ThrowSQLError(ws, func_name);
                 return;
             }
-
-            //Пытаемся отправить ответ об успешном создании
-            json j = json{
-                {"action", func_name},
-                {"id", new_id},
-                {"is_owner", true},
-                {"name", pack["chat_name"].get<std::string>()},
-                {"description", pack["chat_description"].get<std::string>()},
-                {"owner", uin}
-            };
-            Answer(ws, ok, j);
-            return;
         }
 
     } else {
-        long long new_id = 0;
 
         //Пытаемся вставить чат в базу данных
         if (Database::prepareStatement(
@@ -130,11 +118,25 @@ void NewChat(WebSocketType* ws, const nlohmann::json& pack) {
             ThrowSQLError(ws, func_name);
             return;
         }
+    }
+
+    //Добавляем заявку
+    long long int newID = 0;
+    if (Database::prepareStatement("INSERT INTO chat_users (user_uin, chat_id, confirmed, role) VALUES (?, ?, ?, ?)")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            uin,
+            new_id,
+            true,
+            "[\"admin\"]"
+        };
+        
+        newID = Database::executeInsertAndGetId(params);
 
         //Пытаемся отправить ответ об успешном создании
         json j = json{
             {"action", func_name},
-            {"id", new_id},
+            {"id", newID},
+            {"chat_id", new_id},
             {"is_owner", true},
             {"name", pack["chat_name"].get<std::string>()},
             {"description", pack["chat_description"].get<std::string>()},
@@ -142,9 +144,11 @@ void NewChat(WebSocketType* ws, const nlohmann::json& pack) {
         };
         Answer(ws, ok, j);
         return;
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
     }
 
-    //TO DO: сделать владельца участником своего же чата
 }
 
 void DeleteChat(WebSocketType* ws, const nlohmann::json& pack) {
@@ -211,7 +215,36 @@ void DeleteChat(WebSocketType* ws, const nlohmann::json& pack) {
     };
     Answer(ws, ok, j);
 
-    //TO DO: Сделать рассылку участникам в сети об удалении чата
+    //Рассылка участникам в сети об удалении чата
+    nlohmann::json ChatUsers = nlohmann::json{};
+    if (Database::prepareStatement("SELECT cu.user_uin FROM chat_users as cu WHERE chat_id = ? and confirmed = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            getIntAnyway(pack["chat_id"]),
+            true
+        };
+
+        ChatUsers = Database::executeSelect(params);
+
+        for (auto& item : ChatUsers) {
+            if (item.is_object()) {
+                long long int c_uin = item["user_uin"].get<long long int>();
+                if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
+                    json j = json{
+                        {"action", std::string(func_name) + "Reciever"},
+                        {"id", pack["chat_id"]},
+                        {"message", "Чат удален"},
+                    };
+                    Answer(WsServer::authorizedSockets[c_uin], ok, j);
+                }
+            }
+        }
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
+    return;
+
 }
 
 void ChangeChatName(WebSocketType* ws, const nlohmann::json& pack) {
@@ -288,7 +321,33 @@ void ChangeChatName(WebSocketType* ws, const nlohmann::json& pack) {
     };
     Answer(ws, ok, j);
 
-    //TO DO: Сделать рассылку участникам в сети об изменении имени чата
+    //Рассылка участникам в сети об изменении имени чата
+    nlohmann::json ChatUsers = nlohmann::json{};
+    if (Database::prepareStatement("SELECT cu.user_uin FROM chat_users as cu WHERE chat_id = ? and confirmed = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            getIntAnyway(pack["chat_id"]),
+            true
+        };
+
+        ChatUsers = Database::executeSelect(params);
+
+        for (auto& item : ChatUsers) {
+            if (item.is_object()) {
+                long long int c_uin = item["user_uin"].get<long long int>();
+                if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
+                    json j = json{
+                        {"action", std::string(func_name) + "Reciever"},
+                        {"id", pack["chat_id"]},
+                        {"name", pack["chat_name"]}
+                    };
+                    Answer(WsServer::authorizedSockets[c_uin], ok, j);
+                }
+            }
+        }
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
 }
 
 void ChangeChatDesc(WebSocketType* ws, const nlohmann::json& pack) {
@@ -356,7 +415,33 @@ void ChangeChatDesc(WebSocketType* ws, const nlohmann::json& pack) {
     };
     Answer(ws, ok, j);
 
-    //TO DO: Сделать рассылку участникам в сети об изменении описания чата
+    //Рассылка участникам в сети об изменении описания чата
+    nlohmann::json ChatUsers = nlohmann::json{};
+    if (Database::prepareStatement("SELECT cu.user_uin FROM chat_users as cu WHERE chat_id = ? and confirmed = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            getIntAnyway(pack["chat_id"]),
+            true
+        };
+
+        ChatUsers = Database::executeSelect(params);
+
+        for (auto& item : ChatUsers) {
+            if (item.is_object()) {
+                long long int c_uin = item["user_uin"].get<long long int>();
+                if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
+                    json j = json{
+                        {"action", std::string(func_name) + "Reciever"},
+                        {"id", pack["chat_id"]},
+                        {"description", pack["chat_description"]}
+                    };
+                    Answer(WsServer::authorizedSockets[c_uin], ok, j);
+                }
+            }
+        }
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
 }
 
 void ChangeChatOwner(WebSocketType* ws, const nlohmann::json& pack) {
@@ -456,7 +541,49 @@ void ChangeChatOwner(WebSocketType* ws, const nlohmann::json& pack) {
         Answer(WsServer::authorizedSockets[new_owner], ok, j);
     }
 
-    //TO DO: Вписать нового владельца в участники чата
+    //Вписываем нового владельца в участники.
+    if (Database::prepareStatement("SELECT id FROM chat_users WHERE chat_id = ? AND user_uin = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            getIntAnyway(pack["chat_id"]),
+            new_owner
+        };
+
+        json verifyUser = Database::executeSelect(params);
+
+        if(verifyUser.empty()) {
+            //Создаем новую запись
+            if (Database::prepareStatement("INSERT INTO chat_users (user_uin, chat_id, confirmed, role) VALUES (?, ?, ?, ?)")) {
+                std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                    new_owner,
+                    getIntAnyway(pack["chat_id"]),
+                    true,
+                    "[\"admin\"]"
+                };
+                
+                Database::executeInsertAndGetId(params);
+                return;
+            } else {
+                ThrowSQLError(ws, func_name);
+                return;
+            }
+            return;
+        } else {
+            //Редактируем текущую
+            if (Database::prepareStatement("UPDATE chat_users SET confirmed = ?, role = ? WHERE chat_id = ? AND user_uin = ?")) {
+                std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                    true,
+                    "[\"admin\"]",
+                    getIntAnyway(pack["chat_id"]),
+                    new_owner
+                };
+                Database::executeUpdate(params);
+                return;
+            } else {
+                ThrowSQLError(ws, func_name);
+                return;
+            }
+        }
+    }
 }
 
 void ChangeUserChatPermAdmin(WebSocketType* ws, const nlohmann::json& pack) {

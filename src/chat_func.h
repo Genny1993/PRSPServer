@@ -1352,3 +1352,221 @@ void AcceptChatRequest(WebSocketType* ws, const nlohmann::json& pack) {
         return;
     }
 }
+
+void RemoveChatContact(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "removeChatContact";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
+
+    if(!RequireField(ws, pack, "chat_id", func_name, "Нет передаваемого id чата")) return;
+    if(!RequireField(ws, pack, "request_id", func_name, "Нет передаваемой id заявки")) return;
+    
+    //Проверяем заявку на существование
+    json Request = json{};
+    if (Database::prepareStatement(R"(
+        SELECT id
+        FROM chat_users WHERE user_uin = ? AND chat_id = ? AND confirmed = ? AND id = ?;)"
+    )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            uin,
+            pack["chat_id"].get<std::string>(),
+            true,
+            pack["request_id"].get<std::string>(),
+        };
+
+        Request = Database::executeSelect(params);
+        
+        //Отправляем ответ клиенту если чата нет
+        if(Request.empty()) {
+            json j = json{
+                {"action", func_name},
+                {"message", "Контакта чата не существует"},
+            };
+            Answer(ws, ok, j);
+            return;
+        }
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
+    //Удаляем заявку
+    if (Database::prepareStatement("DELETE FROM chat_users WHERE id = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            getIntAnyway(pack["request_id"])
+        };
+
+        Database::executeUpdate(params);
+                        
+      
+        //Отправляем ответ клиенту
+        json j = json{
+            {"action", std::string(func_name) + "Sender"},
+            {"id", pack["request_id"]},
+            {"message", "Вы вышли из чата"}
+        };
+        Answer(ws, ok, j);
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
+    //Отправляем удаление чата пользователем, если они онлайн
+    nlohmann::json ChatUsers = nlohmann::json{};
+    if (Database::prepareStatement("SELECT cu.user_uin FROM chat_users as cu WHERE chat_id = ? and confirmed = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            getIntAnyway(pack["chat_id"]),
+            true
+        };
+
+        ChatUsers = Database::executeSelect(params);
+
+        for (auto& item : ChatUsers) {
+            if (item.is_object()) {
+                long long int c_uin = item["user_uin"].get<long long int>();
+                if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
+                    json j = json{
+                        {"action", std::string(func_name) + "Receiver"},
+                        {"id", pack["request_id"]},
+                        {"message", "Пользователь вышел из чата"}
+                    };
+                    Answer(WsServer::authorizedSockets[c_uin], ok, j);
+                }
+            }
+        }
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+}
+
+void RemoveChatContactAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "removeChatContactAdmin";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
+
+    if(!RequireField(ws, pack, "chat_id", func_name, "Нет передаваемого id чата")) return;
+    if(!RequireField(ws, pack, "request_id", func_name, "Нет передаваемой id заявки")) return;
+    if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого UIN заявителя")) return;
+
+    //Проверяем права админа чата
+    json Permission = json{};
+    if (Database::prepareStatement(
+        "SELECT "
+            "cu.id "
+        "FROM "
+            "chat_users cu "
+        "WHERE "
+            "cu.chat_id = ? AND cu.user_uin = ? AND cu.role = ? AND cu.confirmed = TRUE;"
+    )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            pack["chat_id"].get<std::string>(),
+            uin,
+            "[\"admin\"]"
+        };
+        Permission = Database::executeSelect(params);
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
+    if(Permission.empty()) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Чат не существует, или вы не имеете прав на изменение"},
+        };
+        Answer(ws, clientError, j);
+        return;
+    }
+    
+    //Проверяем заявку на существование
+    json Request = json{};
+    if (Database::prepareStatement(R"(
+        SELECT id
+        FROM chat_users WHERE user_uin = ? AND chat_id = ? AND confirmed = ? AND id = ?;)"
+    )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            getIntAnyway(pack["dest_uin"]),
+            pack["chat_id"].get<std::string>(),
+            true,
+            pack["request_id"].get<std::string>()
+        };
+
+        Request = Database::executeSelect(params);
+        
+        //Отправляем ответ клиенту если чата нет
+        if(Request.empty()) {
+            json j = json{
+                {"action", func_name},
+                {"message", "Пользователя не существует"},
+            };
+            Answer(ws, ok, j);
+            return;
+        }
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
+    //Удаляем заявку
+    if (Database::prepareStatement("DELETE FROM chat_users WHERE id = ? AND user_uin = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            getIntAnyway(pack["request_id"]),
+            getIntAnyway(pack["dest_uin"])
+        };
+
+        Database::executeUpdate(params);
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
+    //Отправить пользователям в сети удаление участника
+    nlohmann::json ChatUsers = nlohmann::json{};
+    if (Database::prepareStatement("SELECT cu.user_uin FROM chat_users as cu WHERE chat_id = ? and confirmed = ?")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            getIntAnyway(pack["chat_id"]),
+            true
+        };
+
+        ChatUsers = Database::executeSelect(params);
+
+        for (auto& item : ChatUsers) {
+            if (item.is_object()) {
+                long long int c_uin = item["user_uin"].get<long long int>();
+                if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
+                    json j = json{
+                        {"action", std::string(func_name) + "Receiver"},
+                        {"id", pack["request_id"]},
+                        {"message", "Пользователь удален из чата"}
+                    };
+                    Answer(WsServer::authorizedSockets[c_uin], ok, j);
+                }
+            }
+        }
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
+    //Отправить пользователю удаление
+    if (WsServer::authorizedSockets.find(getIntAnyway(pack["dest_uin"])) != WsServer::authorizedSockets.end()) {
+        json j = json{
+            {"action", std::string(func_name) + "ReceiverDest"},
+            {"id", pack["request_id"]},
+            {"message", "Администратор удалил вас из чата"}
+        };
+        Answer(WsServer::authorizedSockets[getIntAnyway(pack["dest_uin"])], ok, j);
+        return;
+    }
+}

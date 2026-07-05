@@ -97,6 +97,8 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "cancelChatRequest") { CancelChatRequest(ws, pack); return; }
     if(method == "rejectChatRequest") { RejectChatRequest(ws, pack); return; }
     if(method == "acceptChatRequest") { AcceptChatRequest(ws, pack); return; }
+    if(method == "removeChatContact") { RemoveChatContact(ws, pack); return; }
+    if(method == "removeChatContactAdmin") { RemoveChatContactAdmin(ws, pack); return; }
     
     json j = json{
         {"action", "router"},

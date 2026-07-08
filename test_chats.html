@@ -31,6 +31,7 @@
     <button onclick="sendAcceptChatRequest()">SendAcceptChatRequest</button>
     <button onclick="sendRemoveChatContact()">SendRemoveChatContact</button>
     <button onclick="sendRemoveChatContactAdmin()">SendRemoveChatContactAdmin</button>
+    <button onclick="sendChangeChatUserRole()">SendChangeChatUserRole</button>
     <div id="auth_key"></div>
     <div id="master_key"></div>
     <div id="log"></div>
@@ -388,6 +389,20 @@
                 ' "request_id": "' + document.getElementById('msg2').value + '",' +
                 ' "dest_uin": "' + document.getElementById('msg3').value + '",' +
                 ' "chat_id": "' + document.getElementById('msg4').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendChangeChatUserRole() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "changeChatUserRole", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "request_id": "' + document.getElementById('msg2').value + '",' +
+                ' "dest_uin": "' + document.getElementById('msg3').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg4').value + '",' +
+                ' "role": "' + "[\\\"admin\\\"]" +
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }

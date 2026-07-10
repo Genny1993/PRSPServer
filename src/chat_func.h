@@ -1689,3 +1689,121 @@ void ChangeChatUserRole(WebSocketType* ws, const nlohmann::json& pack) {
         return;
     }
 }
+
+void GetMyChats(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "getMyChats";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
+    if(!RequireField(ws, pack, "limit", func_name, "Нет передаваемого limit")) return;
+    if(!RequireField(ws, pack, "page", func_name, "Нет передаваемого page")) return;
+
+    long long int limit = getIntAnyway(pack["limit"]);
+    long long int page = getIntAnyway(pack["page"]);
+
+    //Достаем чаты
+    json Chats = json{};
+    if (Database::prepareStatement(R"(
+        SELECT 
+            CASE WHEN cu.id IS NOT NULL THEN cu.id END AS request_id,
+            CASE WHEN cu.role IS NOT NULL THEN cu.role END AS role,
+            CASE WHEN c.id IS NOT NULL THEN c.id END AS chat_id,
+            CASE WHEN c.name IS NOT NULL THEN c.name END AS chat_name,
+            CASE WHEN c.description IS NOT NULL THEN c.description END AS chat_description,
+            CASE WHEN c.owner IS NOT NULL THEN c.owner END AS chat_owner,
+            CASE 
+                WHEN c.owner = cu.user_uin THEN 1 
+                ELSE 0 
+            END AS is_owner,
+            CASE 
+                WHEN cu.role LIKE '%admin%' THEN 1 
+                ELSE 0 
+            END AS is_admin
+        FROM 
+            chat_users cu
+        INNER JOIN 
+            chats c ON cu.chat_id = c.id
+        WHERE 
+            cu.user_uin = ?
+            AND cu.confirmed = true
+            AND c.deleted = false
+        ORDER BY 
+            is_owner DESC,
+            is_admin DESC,
+            c.name ASC
+        LIMIT )" + std::to_string(limit) + " OFFSET " + std::to_string(limit * (page - 1)) + ";"
+    )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            uin
+        };
+
+        Chats = Database::executeSelect(params);
+        
+        //Отправляем ответ клиенту
+        json j = json{
+            {"action", func_name},
+            {"chats", Chats},
+        };
+        Answer(ws, ok, j);
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+}
+
+void GetMyRequests(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "getMyRequests";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
+    if(!RequireField(ws, pack, "limit", func_name, "Нет передаваемого limit")) return;
+    if(!RequireField(ws, pack, "page", func_name, "Нет передаваемого page")) return;
+
+    long long int limit = getIntAnyway(pack["limit"]);
+    long long int page = getIntAnyway(pack["page"]);
+
+    //Достаем заявки
+    json Chats = json{};
+    if (Database::prepareStatement(R"(
+        SELECT 
+            CASE WHEN cu.id IS NOT NULL THEN cu.id END AS request_id,
+            CASE WHEN c.id IS NOT NULL THEN c.id END AS chat_id,
+            CASE WHEN c.name IS NOT NULL THEN c.name END AS chat_name,
+            CASE WHEN c.description IS NOT NULL THEN c.description END AS chat_description
+        FROM 
+            chat_users cu
+        INNER JOIN 
+            chats c ON cu.chat_id = c.id
+        WHERE 
+            cu.user_uin = ?
+            AND cu.confirmed = false
+            AND c.deleted = false
+        ORDER BY
+            c.name ASC
+        LIMIT )" + std::to_string(limit) + " OFFSET " + std::to_string(limit * (page - 1)) + ";"
+    )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            uin
+        };
+
+        Chats = Database::executeSelect(params);
+        
+        //Отправляем ответ клиенту
+        json j = json{
+            {"action", func_name},
+            {"chats", Chats},
+        };
+        Answer(ws, ok, j);
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+}

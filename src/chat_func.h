@@ -1894,3 +1894,111 @@ void GetChatRequests(WebSocketType* ws, const nlohmann::json& pack) {
         return;
     }
 }
+
+void GetChatMembers(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "getChatMembers";
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
+    if(!RequireField(ws, pack, "limit", func_name, "Нет передаваемого limit")) return;
+    if(!RequireField(ws, pack, "page", func_name, "Нет передаваемого page")) return;
+    if(!RequireField(ws, pack, "chat_id", func_name, "Нет передаваемого chat_id")) return;
+
+    long long int limit = getIntAnyway(pack["limit"]);
+    long long int page = getIntAnyway(pack["page"]);
+
+    //Проверяем права пользователя чата
+    json Permission = json{};
+
+    if (Database::prepareStatement(
+        "SELECT "
+            "cu.id "
+        "FROM "
+            "chat_users cu "
+        "WHERE "
+            "cu.chat_id = ? AND cu.user_uin = ? AND (cu.role = ? OR cu.role = ?) AND cu.confirmed = TRUE;"
+    )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            pack["chat_id"].get<std::string>(),
+            uin,
+            "[\"admin\"]",
+            "[\"user\"]"
+        };
+        Permission = Database::executeSelect(params);
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
+    if(Permission.empty()) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Чат не существует, или вы не имеете прав на получение информации"},
+        };
+        Answer(ws, clientError, j);
+        return;
+    }
+
+    //Достаем заявки
+    json ChatUsers = json{};
+    if (Database::prepareStatement(R"(
+        SELECT 
+            CASE WHEN cu.id IS NOT NULL THEN cu.id END AS request_id,
+            CASE WHEN u.UIN IS NOT NULL THEN u.UIN END AS UIN,
+            CASE WHEN u.pseudonym IS NOT NULL THEN u.pseudonym END AS pseudonym,
+            CASE WHEN u.status IS NOT NULL THEN u.status END AS status,
+            CASE 
+                WHEN c.owner = cu.user_uin THEN 1 
+                ELSE 0 
+            END AS is_owner,
+            CASE 
+                WHEN cu.role LIKE '%admin%' THEN 1 
+                ELSE 0 
+            END AS is_admin
+        FROM 
+            chat_users cu
+        INNER JOIN 
+            users u ON cu.user_uin = u.UIN
+        INNER JOIN 
+            chats c ON c.id = cu.chat_id
+        WHERE 
+            cu.chat_id = ?
+            AND cu.confirmed = true
+            AND c.deleted = false
+        ORDER BY
+            c.name ASC
+        LIMIT )" + std::to_string(limit) + " OFFSET " + std::to_string(limit * (page - 1)) + ";"
+    )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            pack["chat_id"].get<std::string>()
+        };
+
+        ChatUsers = Database::executeSelect(params);
+        
+        //Узнаем статус онлайн\оффлайн
+        for (auto& item : ChatUsers) {
+            if (item.is_object()) {
+                long long int uin =  getIntAnyway(item["UIN"]);
+                if (WsServer::authorizedSockets.find(uin) != WsServer::authorizedSockets.end()) {
+                    item["online"] = true;
+                } else {
+                    item["online"] = false;
+                }
+            }
+        }
+
+        //Отправляем ответ клиенту
+        json j = json{
+            {"action", func_name},
+            {"chats", ChatUsers},
+        };
+        Answer(ws, ok, j);
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+}

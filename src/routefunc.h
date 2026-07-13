@@ -103,6 +103,7 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "getMyChats") { GetMyChats(ws, pack); return; }
     if(method == "getMyRequests") { GetMyRequests(ws, pack); return; }
     if(method == "getChatRequests") { GetChatRequests(ws, pack); return; }
+    if(method == "getChatMembers") { GetChatMembers(ws, pack); return; }
 
     json j = json{
         {"action", "router"},
@@ -1011,6 +1012,44 @@ void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack) {
     };
 
     ContactsBroadcast(uin, ok, j);
+
+    //Рассылаем статус онлайн для всех пользователей чатов, где состоит пользователь в сети
+    json ChatUsers = json{};
+    if (Database::prepareStatement(R"(
+        SELECT DISTINCT cu2.user_uin, cu2.chat_id, cu.id
+        FROM chat_users AS cu
+        LEFT JOIN chats AS c ON c.id = cu.chat_id
+        LEFT JOIN chat_users AS cu2 ON cu.chat_id = cu2.chat_id 
+            AND cu.user_uin != cu2.user_uin
+            AND cu2.confirmed = TRUE
+        WHERE cu.user_uin = ? 
+            AND cu.confirmed = TRUE
+            AND c.deleted = FALSE;)"
+    )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            uin
+        };
+
+        ChatUsers = Database::executeSelect(params);
+
+        for (auto& item : ChatUsers) {
+            if (item.is_object()) {
+                long long int c_uin = item["user_uin"].get<long long int>();
+                if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
+                    json j = json{
+                        {"action", std::string(func_name) + "Chat"},
+                        {"chat_id", item["chat_id"]},
+                        {"request_id", item["id"]}
+                    };
+                    Answer(WsServer::authorizedSockets[c_uin], ok, j);
+                }
+            }
+        }
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
     return;
 }
 
@@ -1031,6 +1070,44 @@ void BroadcastOffline(WebSocketType* ws, const nlohmann::json& pack) {
     };
 
     ContactsBroadcast(uin, ok, j);
+
+    //Рассылаем статус оффлайн для всех пользователей чатов, где состоит пользователь в сети
+    json ChatUsers = json{};
+    if (Database::prepareStatement(R"(
+        SELECT DISTINCT cu2.user_uin, cu2.chat_id, cu.id
+        FROM chat_users AS cu
+        LEFT JOIN chats AS c ON c.id = cu.chat_id
+        LEFT JOIN chat_users AS cu2 ON cu.chat_id = cu2.chat_id 
+            AND cu.user_uin != cu2.user_uin
+            AND cu2.confirmed = TRUE
+        WHERE cu.user_uin = ? 
+            AND cu.confirmed = TRUE
+            AND c.deleted = FALSE;)"
+    )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            uin
+        };
+
+        ChatUsers = Database::executeSelect(params);
+
+        for (auto& item : ChatUsers) {
+            if (item.is_object()) {
+                long long int c_uin = item["user_uin"].get<long long int>();
+                if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
+                    json j = json{
+                        {"action", std::string(func_name) + "Chat"},
+                        {"chat_id", item["chat_id"]},
+                        {"request_id", item["id"]}
+                    };
+                    Answer(WsServer::authorizedSockets[c_uin], ok, j);
+                }
+            }
+        }
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
     return;
 }
 

@@ -35,6 +35,7 @@
     <button onclick="sendGetMyChats()">SendGetMyChats</button>
     <button onclick="sendGetMyRequests()">SendGetMyRequests</button>
     <button onclick="sendGetChatRequests()">SendGetChatRequests</button>
+    <button onclick="sendGetChatMembers()">SendGetChatMembers</button>
     <div id="auth_key"></div>
     <div id="master_key"></div>
     <div id="log"></div>
@@ -438,6 +439,19 @@
         async function sendGetChatRequests() {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 const text = '{"func": "getChatRequests", ' +
+                '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
+                ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "chat_id": "' + document.getElementById('msg2').value + '",' +
+                ' "page": "' + "1" + '",' +
+                ' "limit": "' + "30" +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendGetChatMembers() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "getChatMembers", ' +
                 '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
                 ' "UIN": "' + document.getElementById('msg').value + '",' +
                 ' "chat_id": "' + document.getElementById('msg2').value + '",' +

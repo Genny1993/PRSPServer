@@ -39,6 +39,9 @@
     <button onclick="sendNewMessage()">SendNewMessage</button>
     <button onclick="sendGetLastMessages()">SendGetLastMessages</button>
     <button onclick="sendGetHistoryMessages()">SendGetHistoryMessages</button>
+    <button onclick="sendSendTypingChat()">SendSendTypingChat</button>
+    <button onclick="sendDeleteMessage()">SendDeleteMessage</button>
+    <button onclick="sendEditMessage()">SendEditMessage</button>
     <div id="auth_key"></div>
     <div id="master_key"></div>
     <div id="log"></div>
@@ -497,6 +500,41 @@
                 '", "page": "' + document.getElementById('msg3').value +
                 '", "limit": 1' +
                 ', "is_chat": "true' + 
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendSendTypingChat() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "sendTypingChat", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "chat_id": "' + document.getElementById('msg2').value +
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendDeleteMessage() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "deleteMessage", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_id": "' + document.getElementById('msg2').value +
+                '", "message_id": "' + document.getElementById('msg3').value +
+                '", "is_chat": "true' + 
+                '"}}';
+                ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
+            }
+        }
+
+        async function sendEditMessage() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const text = '{"func": "editMessage", "pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + 
+                '", "UIN": "' + document.getElementById('msg').value +
+                '", "dest_id": "' + document.getElementById('msg2').value +
+                '", "message_id": "' + document.getElementById('msg3').value +
+                '", "message": "' + document.getElementById('msg4').value +
+                '", "is_chat": "true' + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));
             }

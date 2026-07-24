@@ -423,6 +423,7 @@
                 const text = '{"func": "getMyChats", ' +
                 '"pack": {"auth_key": "' + document.getElementById('auth_key').innerHTML + '",' +
                 ' "UIN": "' + document.getElementById('msg').value + '",' +
+                ' "last_m_id": "' + document.getElementById('msg2').value + '",' +
                 ' "page": "' + "1" + '",' +
                 ' "limit": "' + "30" +
                 '"}}';
@@ -474,6 +475,7 @@
                 '", "UIN": "' + document.getElementById('msg').value +
                 '", "dest_id": "' + document.getElementById('msg3').value +
                 '", "message": "' + document.getElementById('msg4').value +
+                '", "answer_id": "' + document.getElementById('msg5').value +
                 '", "is_chat": "true' + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));

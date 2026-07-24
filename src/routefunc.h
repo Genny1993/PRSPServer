@@ -1654,6 +1654,11 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
     if(!RequireField(ws, pack, "is_chat", func_name, "Нет передаваемого is_chat")) return;
     if(!RequireField(ws, pack, "message", func_name, "Нет передаваемого message")) return;
 
+    bool is_answer = false;
+    if(pack.contains("answer_id")) {
+        is_answer = true;
+    }
+
     if(!validateMessageEnv(ws, pack["message"], func_name)) return;
 
     long long int dest_id = getIntAnyway(pack["dest_id"]);
@@ -1756,8 +1761,37 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
             std::string timestamp = getTimestampNow();
             long long new_id = 0;
 
+            //Проверяем, может ли пользователь цитировать это сообщение
+            long long answer_id = 0;
+            json QuotedM = json{};
+            if(is_answer) {
+                answer_id = getIntAnyway(pack["answer_id"]);
+
+                if (Database::prepareStatement("SELECT id FROM messages WHERE dest_id = ? AND id = ? AND deleted = ? AND is_chat = FALSE")) {
+                    std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                        dest_id,
+                        answer_id,
+                        false
+                    };
+
+                    QuotedM = Database::executeSelect(params);
+
+                    if(QuotedM.empty()) {
+                        json j = json{
+                            {"action", func_name},
+                            {"message", "Вы не можете цитировать данное сообщение"},
+                        };
+                        Answer(ws, clientError, j);
+                        return;
+                    }
+                } else {
+                    ThrowSQLError(ws, func_name);
+                    return;
+                }    
+            }
+
             //Пытаемся вставить сообщение в базу данных
-            if (Database::prepareStatement("INSERT INTO messages (in_uin, dest_uin, dest_id, is_chat, time_stamp, delivered, deleted, message, answer_id, attachment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)")) {
+            if (Database::prepareStatement("INSERT INTO messages (in_uin, dest_uin, dest_id, is_chat, time_stamp, delivered, deleted, message, answer_id, attachment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                 std::vector<std::variant<int, double, std::string, bool, long long>> params = {
                     uin,
                     dest_uin,
@@ -1767,12 +1801,37 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
                     false,
                     false,
                     pack["message"].get<std::string>(),
+                    (answer_id > 0) ? answer_id : 0,
+                    0
                 };
         
                 new_id = Database::executeInsertAndGetId(params);
             } else {
                 ThrowSQLError(ws, func_name);
                 return;
+            }
+
+            json AnswerMessage = json{};
+            bool answer_exist = false;
+            if(is_answer) {
+                if (Database::prepareStatement("SELECT m.id, u.pseudonym, m.message FROM messages AS m "
+                    "LEFT JOIN users AS u ON u.UIN = in_uin "
+                    "WHERE dest_id = ? AND id = ? AND deleted = ? LIMIT 1")) {
+                    std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                        dest_id,
+                        answer_id,
+                        false
+                    };
+
+                    AnswerMessage = Database::executeSelect(params);
+
+                    if(!AnswerMessage.empty()) {
+                        answer_exist = true;
+                    }
+                } else {
+                    ThrowSQLError(ws, func_name);
+                    return;
+                }
             }
 
             //Пытаемся отправить сообщение другому пользователю.
@@ -1789,6 +1848,9 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
                     {"is_chat", pack["is_chat"]},
                     {"delivered", "false"},
                     {"is_my", "false"},
+                    {"answer_id", answer_exist ? AnswerMessage[0]["id"] : ""},
+                    {"answer_pseudonym", answer_exist ? AnswerMessage[0]["pseudonym"] : ""},
+                    {"answer_message", answer_exist ? AnswerMessage[0]["message"] : ""}
                 };
                 Answer(WsServer::authorizedSockets[dest_uin], ok, j);
             }
@@ -1806,6 +1868,9 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
                 {"is_chat", pack["is_chat"]},
                 {"delivered", delivered ? "true" : "false"},
                 {"is_my", "true"},
+                {"answer_id", answer_exist ? AnswerMessage[0]["id"] : ""},
+                {"answer_pseudonym", answer_exist ? AnswerMessage[0]["pseudonym"] : ""},
+                {"answer_message", answer_exist ? AnswerMessage[0]["message"] : ""}
             };
             Answer(ws, ok, j);
         } else {
@@ -1873,8 +1938,37 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
         std::string timestamp = getTimestampNow();
         long long new_id = 0;
 
+        //Проверяем, может ли пользователь цитировать это сообщение
+        long long answer_id = 0;
+        json QuotedM = json{};
+        if(is_answer) {
+            answer_id = getIntAnyway(pack["answer_id"]);
+
+            if (Database::prepareStatement("SELECT id FROM messages WHERE dest_id = ? AND id = ? AND deleted = ? AND is_chat = TRUE")) {
+                std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                    dest_id,
+                    answer_id,
+                    false
+                };
+
+                QuotedM = Database::executeSelect(params);
+
+                if(QuotedM.empty()) {
+                    json j = json{
+                        {"action", func_name},
+                        {"message", "Вы не можете цитировать данное сообщение"},
+                    };
+                    Answer(ws, clientError, j);
+                    return;
+                }
+            } else {
+                ThrowSQLError(ws, func_name);
+                return;
+            }    
+        }
+
         //Пытаемся вставить сообщение в базу данных
-        if (Database::prepareStatement("INSERT INTO messages (in_uin, dest_id, is_chat, time_stamp, delivered, deleted, message, answer_id, attachment) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL)")) {
+        if (Database::prepareStatement("INSERT INTO messages (in_uin, dest_id, is_chat, time_stamp, delivered, deleted, message, answer_id, attachment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
             std::vector<std::variant<int, double, std::string, bool, long long>> params = {
                 uin,
                 dest_id,
@@ -1883,12 +1977,37 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
                 true,
                 false,
                 pack["message"].get<std::string>(),
+                (answer_id > 0) ? answer_id : 0,
+                0
             };
         
             new_id = Database::executeInsertAndGetId(params);
         } else {
             ThrowSQLError(ws, func_name);
             return;
+        }
+
+        json AnswerMessage = json{};
+        bool answer_exist = false;
+        if(is_answer) {
+            if (Database::prepareStatement("SELECT m.id, u.pseudonym, m.message FROM messages AS m "
+                "LEFT JOIN users AS u ON u.UIN = in_uin "
+                "WHERE dest_id = ? AND id = ? AND deleted = ? LIMIT 1")) {
+                std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                    dest_id,
+                    answer_id,
+                    false
+                };
+
+                AnswerMessage = Database::executeSelect(params);
+
+                if(!AnswerMessage.empty()) {
+                    answer_exist = true;
+                }
+            } else {
+                ThrowSQLError(ws, func_name);
+                return;
+            }
         }
 
         //Отправить пользователям в сети новое сообщение
@@ -1917,6 +2036,9 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
                             {"is_chat", pack["is_chat"]},
                             {"delivered", "false"},
                             {"is_my", "false"},
+                            {"answer_id", answer_exist ? AnswerMessage[0]["id"] : ""},
+                            {"answer_pseudonym", answer_exist ? AnswerMessage[0]["pseudonym"] : ""},
+                            {"answer_message", answer_exist ? AnswerMessage[0]["message"] : ""}
                         };
                         Answer(WsServer::authorizedSockets[c_uin], ok, j);
                     }
@@ -1939,6 +2061,9 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
             {"is_chat", pack["is_chat"]},
             {"delivered", delivered ? "true" : "false"},
             {"is_my", "true"},
+            {"answer_id", answer_exist ? AnswerMessage[0]["id"] : ""},
+            {"answer_pseudonym", answer_exist ? AnswerMessage[0]["pseudonym"] : ""},
+            {"answer_message", answer_exist ? AnswerMessage[0]["message"] : ""}
         };
         Answer(ws, ok, j);
     }

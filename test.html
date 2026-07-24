@@ -452,6 +452,7 @@
                 '", "dest_uin": "' + document.getElementById('msg2').value +
                 '", "dest_id": "' + document.getElementById('msg3').value +
                 '", "message": "' + document.getElementById('msg4').value +
+                '", "answer_id": "' + document.getElementById('msg5').value +
                 '", "is_chat": "false' + 
                 '"}}';
                 ws.send(await encryptAES(text, document.getElementById('master_key').innerHTML));

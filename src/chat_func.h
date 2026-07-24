@@ -1701,9 +1701,11 @@ void GetMyChats(WebSocketType* ws, const nlohmann::json& pack) {
     if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
     if(!RequireField(ws, pack, "limit", func_name, "Нет передаваемого limit")) return;
     if(!RequireField(ws, pack, "page", func_name, "Нет передаваемого page")) return;
+    if(!RequireField(ws, pack, "last_m_id", func_name, "Нет передаваемого last_m_id")) return;
 
     long long int limit = getIntAnyway(pack["limit"]);
     long long int page = getIntAnyway(pack["page"]);
+    long long int last_m_id = getIntAnyway(pack["last_m_id"]);
 
     //Достаем чаты
     json Chats = json{};
@@ -1722,7 +1724,18 @@ void GetMyChats(WebSocketType* ws, const nlohmann::json& pack) {
             CASE 
                 WHEN cu.role LIKE '%admin%' THEN 1 
                 ELSE 0 
-            END AS is_admin
+            END AS is_admin,
+            COALESCE(
+            (
+                SELECT COUNT(*)
+                FROM messages m
+                WHERE m.dest_id = c.id
+                    AND m.deleted = false
+                    AND m.is_chat = TRUE
+                    AND (? > -1 AND m.id > ?)
+            ),
+            0
+        ) AS unread_count
         FROM 
             chat_users cu
         INNER JOIN 
@@ -1738,6 +1751,8 @@ void GetMyChats(WebSocketType* ws, const nlohmann::json& pack) {
         LIMIT )" + std::to_string(limit) + " OFFSET " + std::to_string(limit * (page - 1)) + ";"
     )) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            last_m_id,
+            last_m_id,
             uin
         };
 

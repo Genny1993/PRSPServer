@@ -46,6 +46,7 @@ void SetDeliveredMessage(WebSocketType* ws, const nlohmann::json& pack);
 void SendTyping(WebSocketType* ws, const nlohmann::json& pack);
 void DeleteMessage(WebSocketType* ws, const nlohmann::json& pack);
 void EditMessage(WebSocketType* ws, const nlohmann::json& pack);
+void GetOneMessage(WebSocketType* ws, const nlohmann::json& pack);
 
 void Router(WebSocketType* ws, std::string_view message, const std::string& method, const nlohmann::json& pack) {
     if(method == "echo") { Echo(ws, message, pack); return; }
@@ -83,6 +84,7 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "sendTyping") { SendTyping(ws, pack); return; }
     if(method == "deleteMessage") { DeleteMessage(ws, pack); return; }
     if(method == "editMessage") { EditMessage(ws, pack); return; }
+    if(method == "getOneMessage") { GetOneMessage(ws, pack); return; }
 
     if(method == "newChat") { NewChat(ws, pack); return; }
     if(method == "deleteChat") { DeleteChat(ws, pack); return; }
@@ -3147,6 +3149,111 @@ void EditMessage(WebSocketType* ws, const nlohmann::json& pack) {
             Answer(ws, clientError, j);
             return;
         }
+    }
+}
+
+void GetOneMessage(WebSocketType* ws, const nlohmann::json& pack) {
+    const std::string_view func_name = "getOneMessage";
+    
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
+    if(!RequireField(ws, pack, "message_id", func_name, "Нет передаваемого message_id")) return;
+
+    //проверяем, является ли сообщение личным и доступным
+    bool is_private = false;
+    json Permission = json{};
+    if (Database::prepareStatement(
+        R"(
+        SELECT m.id
+        FROM
+            messages AS m
+        WHERE
+            (m.in_uin = ? OR m.dest_uin = ?) AND is_chat = FALSE AND deleted = FALSE AND id = ?)"
+    )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            uin,
+            uin,
+            getIntAnyway(pack["message_id"])
+        };
+        Permission = Database::executeSelect(params);
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
+    if(!Permission.empty()) {
+        is_private = true;
+    }
+
+    bool is_chat = false;
+    if (Database::prepareStatement(
+        R"(
+        SELECT m.id
+        FROM
+            messages AS m
+        JOIN chats AS c ON c.id = m.dest_id
+        JOIN chat_users AS cu ON cu.confirmed = TRUE AND cu.chat_id = c.id
+        WHERE
+            m.is_chat = TRUE AND m.deleted = FALSE AND m.id = ? AND cu.user_uin = ?)"
+    )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            getIntAnyway(pack["message_id"]),
+            uin
+        };
+        Permission = Database::executeSelect(params);
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
+    if(!Permission.empty()) {
+        is_chat = true;
+    }
+
+    if(!is_chat && !is_private) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Сообщение не существует, или вы не имеете прав на его просмотр"},
+        };
+        Answer(ws, clientError, j);
+        return;
+    }
+
+    //Достаем сообщения
+    json Message = json{};
+    if (Database::prepareStatement(R"(
+        SELECT m.*,
+            CASE WHEN m2.id IS NOT NULL THEN m2.id END AS answer_id,
+            CASE WHEN m2.message IS NOT NULL THEN m2.message END AS answer_message,
+            CASE WHEN u.pseudonym IS NOT NULL THEN u.pseudonym END AS answer_pseudonym,
+            CASE 
+                WHEN m.in_uin = ? THEN 1 
+                ELSE 0 
+            END AS is_my 
+        FROM messages AS m
+        LEFT JOIN messages AS m2 ON m.answer_id = m2.id
+        LEFT JOIN users AS u ON m2.in_uin = u.UIN
+        WHERE m.id = ?;)")) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            uin,
+            getIntAnyway(pack["message_id"])
+        };
+
+        Message = Database::executeSelect(params);
+        //Отправляем сообщение клиенту
+        json j = json{
+            {"action", func_name},
+            {"message", Message[0]},
+        };
+        Answer(ws, ok, j);
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
     }
 }
 

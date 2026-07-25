@@ -22,6 +22,7 @@ std::string_view action = "CLIENT_ACTION";
 std::string_view ping = "PING";
 
 bool Answer(WebSocketType* ws, std::string_view status, const auto& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     nlohmann::json answer = {
             {"status", status},
             {"pack", pack }
@@ -38,6 +39,7 @@ bool Answer(WebSocketType* ws, std::string_view status, const auto& pack) {
 
 //Рассылка всем контактам в онлайне
 bool ContactsBroadcast(long long int uin, std::string_view status, const auto& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 
     nlohmann::json Contacts = nlohmann::json{};
     if (Database::prepareStatement("SELECT c.id, CASE WHEN c.initiator_uin = ? THEN c.destination_uin ELSE c.initiator_uin END AS UIN, CASE WHEN c.initiator_uin = ? THEN dest_user.pseudonym ELSE init_user.pseudonym END AS pseudonym, CASE WHEN c.initiator_uin = ? THEN 'initiator' ELSE 'destination' END AS my_role, CASE WHEN c.initiator_uin = ? THEN dest_user.status ELSE init_user.status END AS status, CASE WHEN c.initiator_uin = ? THEN dest_user.is_active ELSE init_user.is_active END AS is_active, c.is_approved FROM contacts c LEFT JOIN users init_user ON c.initiator_uin = init_user.UIN LEFT JOIN users dest_user ON c.destination_uin = dest_user.UIN WHERE (c.initiator_uin = ? OR c.destination_uin = ?) AND c.is_approved = ?")) {
@@ -129,6 +131,7 @@ std::string generateAuthToken(long long int uin) {
 }
 
 bool RequireField(WebSocketType* ws, const nlohmann::json& pack, std::string_view field, std::string_view func_name, std::string_view error_text) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     if(!pack.contains(field)) {
         json j = json{
             {"action", func_name},
@@ -142,6 +145,7 @@ bool RequireField(WebSocketType* ws, const nlohmann::json& pack, std::string_vie
 }
 
 void ThrowSQLError(WebSocketType* ws, std::string_view func_name) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     json j = json{
         {"action", func_name},
         {"message", "Ошибка при подготовке SQL-запроса"},

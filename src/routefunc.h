@@ -116,12 +116,14 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
 }
 
 void Echo(WebSocketType* ws, const std::string_view message, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     (void)message;
     Answer(ws, ok, pack);
 }
 
 void Register(WebSocketType* ws, const nlohmann::json& pack) {
-    
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "register";
     if(!RequireField(ws, pack, "password", func_name, "Нет передаваемого пароля password")) return;
     if(!RequireField(ws, pack, "pseudonym", func_name, "Нет отображаемого имени pseudonym")) return;
@@ -181,6 +183,8 @@ void Register(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void Login(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "login";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "password", func_name, "Нет передаваемого пароля password")) return;
@@ -265,6 +269,8 @@ void Login(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void Logout(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "logout";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
@@ -297,6 +303,8 @@ void Logout(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void IsAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "isAdmin";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
@@ -321,6 +329,8 @@ void IsAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void ChangePassword(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "changePassword";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
@@ -384,6 +394,7 @@ void ChangePassword(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void FindUsers(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 
     const std::string_view func_name = "findUsers";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
@@ -425,6 +436,7 @@ void FindUsers(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 
     const std::string_view func_name = "addContact";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
@@ -545,6 +557,8 @@ void AddContact(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void AcceptContact(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "acceptContact";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
@@ -652,6 +666,8 @@ void AcceptContact(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void DeclineContact(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "declineContact";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
@@ -721,6 +737,8 @@ void DeclineContact(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void UndoAddContact(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "undoAddContact";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
@@ -790,7 +808,8 @@ void UndoAddContact(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void RemoveContact(WebSocketType* ws, const nlohmann::json& pack) {
-    
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "removeContact";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
@@ -863,6 +882,8 @@ void RemoveContact(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void GetContacts(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "getContacts";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
@@ -936,6 +957,8 @@ void GetContacts(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void GetOutgoingRequests(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "getOutgoingRequests";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
@@ -967,6 +990,8 @@ void GetOutgoingRequests(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void GetIncomingRequests(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "getIncomingRequests";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
@@ -999,6 +1024,8 @@ void GetIncomingRequests(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "broadcastOnline";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1057,7 +1084,8 @@ void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void BroadcastOffline(WebSocketType* ws, const nlohmann::json& pack) {
-    
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "broadcastOffline";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1115,6 +1143,8 @@ void BroadcastOffline(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void ChangePseudonym(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "changePseudonym";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1155,6 +1185,8 @@ void ChangePseudonym(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void ChangeStatus(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "changeStatus";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1195,6 +1227,8 @@ void ChangeStatus(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void ChangeAES(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+    
     const std::string_view func_name = "changeAES";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1229,6 +1263,7 @@ void ChangeAES(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void ChangePasswordAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 
     const std::string_view func_name = "changePasswordAdmin";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
@@ -1266,6 +1301,8 @@ void ChangePasswordAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void ChangePseudonymAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "changePseudonymAdmin";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1321,6 +1358,8 @@ void ChangePseudonymAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void ChangeStatusAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "changeStatusAdmin";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1375,6 +1414,8 @@ void ChangeStatusAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void BanUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "banUserAdmin";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1434,6 +1475,8 @@ void BanUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void UnbanUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "unbanUserAdmin";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1486,6 +1529,8 @@ void UnbanUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void KickUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "kickUserAdmin";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1543,6 +1588,8 @@ void KickUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "changeRoleAdmin";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1597,6 +1644,8 @@ void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "changeAddable";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -1643,6 +1692,8 @@ void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "newMessage";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -2073,6 +2124,8 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "getLastMessages";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -2237,6 +2290,8 @@ void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "getHistoryMessages";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
@@ -2413,6 +2468,8 @@ void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void SetDeliveredMessage(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "setDeliveredMessage";
     
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
@@ -2533,6 +2590,8 @@ void SetDeliveredMessage(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void SendTyping(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "sendTyping";
     
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
@@ -2603,6 +2662,8 @@ void SendTyping(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void DeleteMessage(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "deleteMessage";
     
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
@@ -2875,6 +2936,8 @@ void DeleteMessage(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void EditMessage(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     const std::string_view func_name = "editMessage";
     
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
@@ -3153,6 +3216,8 @@ void EditMessage(WebSocketType* ws, const nlohmann::json& pack) {
 }
 
 void GetOneMessage(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+    
     const std::string_view func_name = "getOneMessage";
     
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;

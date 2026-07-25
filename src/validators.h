@@ -51,6 +51,8 @@ bool verifyPassword(const std::string& pwd, const std::string& storedHash) {
 }
 
 bool verifyAuth(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int uin, const std::string& token) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
     if(WsServer::authKeys.find(uin) != WsServer::authKeys.end()) {
         if(WsServer::authKeys[uin]["auth_key"] == token && WsServer::authKeys[uin]["is_active"] == "1") {
             return true;
@@ -84,6 +86,7 @@ bool verifyAuth(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int u
 }
 
 bool verifyRole(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int uin, const std::vector<std::string>& roles) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     
     if(WsServer::authKeys.find(uin) != WsServer::authKeys.end()) {
         json parsedJson = json::parse(WsServer::authKeys[uin]["roles"]);

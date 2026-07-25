@@ -21,11 +21,10 @@ private:
     
     // Статические переменные - нужно объявить, но определить в .cpp
     static std::unique_ptr<uWS::App> app;  // Используем unique_ptr вместо прямого объявления
-    static std::mutex socketsMutex;
     static bool debug;
 
 public:
-
+    static std::recursive_mutex globalMutex;
     static std::unordered_map<long long int, WebSocketType*> authorizedSockets;
     static std::unordered_map<long long int, std::unordered_map<std::string, std::string>> authKeys;
 

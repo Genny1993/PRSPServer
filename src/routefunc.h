@@ -909,6 +909,7 @@ void GetContacts(WebSocketType* ws, const nlohmann::json& pack) {
                 "AND m.delivered = ? "
                 "AND is_chat = ? "
                 "AND dest_id = c.id "
+                "AND m.deleted = FALSE "
             ") AS undelivered_count "
         "FROM contacts c " 
         "LEFT JOIN users init_user ON c.initiator_uin = init_user.UIN " 
@@ -2186,6 +2187,7 @@ void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
         json Messages = json{};
         if (Database::prepareStatement(R"(
                 SELECT m.*,
+                    CASE WHEN u2.pseudonym IS NOT NULL THEN u2.pseudonym END AS sender_pseudonym,
                     CASE WHEN m2.id IS NOT NULL THEN m2.id END AS answer_id,
                     CASE WHEN m2.message IS NOT NULL THEN m2.message END AS answer_message,
                     CASE WHEN u.pseudonym IS NOT NULL THEN u.pseudonym END AS answer_pseudonym,
@@ -2194,8 +2196,9 @@ void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
                         ELSE 0 
                     END AS is_my 
                 FROM messages AS m
-                LEFT JOIN messages AS m2 ON m.answer_id = m2.id
+                LEFT JOIN messages AS m2 ON m.answer_id = m2.id AND m2.deleted = FALSE
                 LEFT JOIN users AS u ON m2.in_uin = u.UIN
+                LEFT JOIN users AS u2 ON m.in_uin = u2.UIN
                 WHERE m.dest_id = ? AND m.deleted = ? AND m.is_chat = ? ORDER BY m.id DESC LIMIT )" + std::to_string(limit) + ";"
             )) {
             std::vector<std::variant<int, double, std::string, bool, long long>> params = {
@@ -2254,16 +2257,16 @@ void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
         json Messages = json{};
         if (Database::prepareStatement(R"(
                 SELECT m.*, 
-                    u.pseudonym, 
+                    CASE WHEN u.pseudonym IS NOT NULL THEN u.pseudonym END AS sender_pseudonym,
                     CASE WHEN m2.id IS NOT NULL THEN m2.id END AS answer_id,
                     CASE WHEN m2.message IS NOT NULL THEN m2.message END AS answer_message,
-                    CASE WHEN u2.pseudonym IS NOT NULL THEN u.pseudonym END AS answer_pseudonym,
+                    CASE WHEN u2.pseudonym IS NOT NULL THEN u2.pseudonym END AS answer_pseudonym,
                     CASE 
                         WHEN m.in_uin = ? THEN 1 
                         ELSE 0 
                     END AS is_my 
                 FROM messages AS m
-                LEFT JOIN messages AS m2 ON m.answer_id = m2.id
+                LEFT JOIN messages AS m2 ON m.answer_id = m2.id AND m2.deleted = FALSE
                 LEFT JOIN users AS u2 ON m2.in_uin = u2.UIN
                 LEFT JOIN users AS u ON u.UIN = m.in_uin
                 WHERE m.dest_id = ? AND m.deleted = ? AND m.is_chat = ? ORDER BY m.id DESC LIMIT )" + std::to_string(limit) + ";"
@@ -2364,6 +2367,7 @@ void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
         json Messages = json{};
         if (Database::prepareStatement(R"(
                 SELECT m.*,
+                    CASE WHEN u2.pseudonym IS NOT NULL THEN u2.pseudonym END AS sender_pseudonym,
                     CASE WHEN m2.id IS NOT NULL THEN m2.id END AS answer_id,
                     CASE WHEN m2.message IS NOT NULL THEN m2.message END AS answer_message,
                     CASE WHEN u.pseudonym IS NOT NULL THEN u.pseudonym END AS answer_pseudonym,
@@ -2374,6 +2378,7 @@ void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
                 FROM messages AS m
                 LEFT JOIN messages AS m2 ON m.answer_id = m2.id
                 LEFT JOIN users AS u ON m2.in_uin = u.UIN
+                LEFT JOIN users AS u2 ON m.in_uin = u2.UIN
                 WHERE m.dest_id = ? AND m.deleted = ? AND m.is_chat = ? ORDER BY m.id DESC LIMIT )" + std::to_string(limit) + " OFFSET " + std::to_string(limit * (page - 1)) + ";"
             )) {
             std::vector<std::variant<int, double, std::string, bool, long long>> params = {
@@ -2432,10 +2437,10 @@ void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
         json Messages = json{};
         if (Database::prepareStatement(R"(
                 SELECT m.*, 
-                    u.pseudonym, 
+                    CASE WHEN u.pseudonym IS NOT NULL THEN u.pseudonym END AS sender_pseudonym,
                     CASE WHEN m2.id IS NOT NULL THEN m2.id END AS answer_id,
                     CASE WHEN m2.message IS NOT NULL THEN m2.message END AS answer_message,
-                    CASE WHEN u2.pseudonym IS NOT NULL THEN u.pseudonym END AS answer_pseudonym,
+                    CASE WHEN u2.pseudonym IS NOT NULL THEN u2.pseudonym END AS answer_pseudonym,
                     CASE 
                         WHEN m.in_uin = ? THEN 1 
                         ELSE 0 
@@ -3293,6 +3298,7 @@ void GetOneMessage(WebSocketType* ws, const nlohmann::json& pack) {
     json Message = json{};
     if (Database::prepareStatement(R"(
         SELECT m.*,
+            CASE WHEN u2.pseudonym IS NOT NULL THEN u2.pseudonym END AS sender_pseudonym,
             CASE WHEN m2.id IS NOT NULL THEN m2.id END AS answer_id,
             CASE WHEN m2.message IS NOT NULL THEN m2.message END AS answer_message,
             CASE WHEN u.pseudonym IS NOT NULL THEN u.pseudonym END AS answer_pseudonym,
@@ -3301,8 +3307,9 @@ void GetOneMessage(WebSocketType* ws, const nlohmann::json& pack) {
                 ELSE 0 
             END AS is_my 
         FROM messages AS m
-        LEFT JOIN messages AS m2 ON m.answer_id = m2.id
+        LEFT JOIN messages AS m2 ON m.answer_id = m2.id AND m2.deleted = FALSE
         LEFT JOIN users AS u ON m2.in_uin = u.UIN
+        LEFT JOIN users AS u2 ON m.in_uin = u2.UIN
         WHERE m.id = ?;)")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
             uin,

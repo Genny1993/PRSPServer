@@ -47,6 +47,7 @@ void SendTyping(WebSocketType* ws, const nlohmann::json& pack);
 void DeleteMessage(WebSocketType* ws, const nlohmann::json& pack);
 void EditMessage(WebSocketType* ws, const nlohmann::json& pack);
 void GetOneMessage(WebSocketType* ws, const nlohmann::json& pack);
+void SendWakeUp(WebSocketType* ws, const nlohmann::json& pack);
 
 void Router(WebSocketType* ws, std::string_view message, const std::string& method, const nlohmann::json& pack) {
     if(method == "echo") { Echo(ws, message, pack); return; }
@@ -85,6 +86,7 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "deleteMessage") { DeleteMessage(ws, pack); return; }
     if(method == "editMessage") { EditMessage(ws, pack); return; }
     if(method == "getOneMessage") { GetOneMessage(ws, pack); return; }
+    if(method == "sendWakeUp") { SendWakeUp(ws, pack); return; }
 
     if(method == "newChat") { NewChat(ws, pack); return; }
     if(method == "deleteChat") { DeleteChat(ws, pack); return; }
@@ -2183,6 +2185,29 @@ void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
             return;
         }
 
+        //Определяем количество существующих страниц.
+        json Pages = json{};
+        int pages = 0;
+        if (Database::prepareStatement(R"(
+            SELECT (COUNT(*) + ? - 1) / ? AS total_pages
+            FROM messages AS m
+            WHERE m.dest_id = ? AND m.deleted = ? AND m.is_chat = ?; )"
+            )) {
+            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                limit,
+                limit,
+                dest_id,
+                false,
+                is_chat
+            };
+
+            Pages = Database::executeSelect(params);
+            pages = getIntAnyway(Pages[0]["total_pages"]);
+        } else {
+            ThrowSQLError(ws, func_name);
+            return;
+        }
+
         //Достаем сообщения
         json Messages = json{};
         if (Database::prepareStatement(R"(
@@ -2212,6 +2237,7 @@ void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
             //Отправляем ответ клиенту
             json j = json{
                 {"action", func_name},
+                {"pages", pages},
                 {"messages", Messages},
             };
             Answer(ws, ok, j);
@@ -2253,6 +2279,29 @@ void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
             return;
         }
 
+        //Определяем количество существующих страниц.
+        json Pages = json{};
+        int pages = 0;
+        if (Database::prepareStatement(R"(
+            SELECT (COUNT(*) + ? - 1) / ? AS total_pages
+            FROM messages AS m
+            WHERE m.dest_id = ? AND m.deleted = ? AND m.is_chat = ?; )"
+            )) {
+            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                limit,
+                limit,
+                dest_id,
+                false,
+                is_chat
+            };
+
+            Pages = Database::executeSelect(params);
+            pages = getIntAnyway(Pages[0]["total_pages"]);
+        } else {
+            ThrowSQLError(ws, func_name);
+            return;
+        }
+
         //Достаем сообщения
         json Messages = json{};
         if (Database::prepareStatement(R"(
@@ -2282,6 +2331,7 @@ void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
             //Отправляем ответ клиенту
             json j = json{
                 {"action", std::string(func_name) + "Chat"},
+                {"pages", pages},
                 {"messages", Messages},
             };
             Answer(ws, ok, j);
@@ -2363,6 +2413,29 @@ void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
             return;
         }
 
+        //Определяем количество существующих страниц.
+        json Pages = json{};
+        int pages = 0;
+        if (Database::prepareStatement(R"(
+            SELECT (COUNT(*) + ? - 1) / ? AS total_pages
+            FROM messages AS m
+            WHERE m.dest_id = ? AND m.deleted = ? AND m.is_chat = ?; )"
+            )) {
+            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                limit,
+                limit,
+                dest_id,
+                false,
+                is_chat
+            };
+
+            Pages = Database::executeSelect(params);
+            pages = getIntAnyway(Pages[0]["total_pages"]);
+        } else {
+            ThrowSQLError(ws, func_name);
+            return;
+        }
+
         //Достаем сообщения
         json Messages = json{};
         if (Database::prepareStatement(R"(
@@ -2392,6 +2465,7 @@ void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
             //Отправляем ответ клиенту
             json j = json{
                 {"action", func_name},
+                {"pages", pages},
                 {"messages", Messages},
             };
             Answer(ws, ok, j);
@@ -2433,6 +2507,29 @@ void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
             return;
         }
 
+        //Определяем количество существующих страниц.
+        json Pages = json{};
+        int pages = 0;
+        if (Database::prepareStatement(R"(
+            SELECT (COUNT(*) + ? - 1) / ? AS total_pages
+            FROM messages AS m
+            WHERE m.dest_id = ? AND m.deleted = ? AND m.is_chat = ?; )"
+            )) {
+            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                limit,
+                limit,
+                dest_id,
+                false,
+                is_chat
+            };
+
+            Pages = Database::executeSelect(params);
+            pages = getIntAnyway(Pages[0]["total_pages"]);
+        } else {
+            ThrowSQLError(ws, func_name);
+            return;
+        }
+        
         //Достаем сообщения
         json Messages = json{};
         if (Database::prepareStatement(R"(
@@ -2462,6 +2559,7 @@ void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack) {
             //Отправляем ответ клиенту
             json j = json{
                 {"action", std::string(func_name) + "Chat"},
+                {"pages", pages},
                 {"messages", Messages},
             };
             Answer(ws, ok, j);
@@ -3325,6 +3423,78 @@ void GetOneMessage(WebSocketType* ws, const nlohmann::json& pack) {
         Answer(ws, ok, j);
     } else {
         ThrowSQLError(ws, func_name);
+        return;
+    }
+}
+
+void SendWakeUp(WebSocketType* ws, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
+    const std::string_view func_name = "sendWakeUp";
+    
+    if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
+
+    long long int uin = getIntAnyway(pack["UIN"]);
+
+    if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
+    if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
+    if(!VerifyRoleEnv(ws, uin, {"admin", "user"}, func_name)) return;
+
+    if(!RequireField(ws, pack, "dest_id", func_name, "Нет передаваемого dest_id")) return;
+    if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого dest_uin")) return;
+    if(!RequireField(ws, pack, "is_chat", func_name, "Нет передаваемого is_chat")) return;
+
+    long long int dest_id = getIntAnyway(pack["dest_id"]);
+    long long int dest_uin = getIntAnyway(pack["dest_uin"]);
+    bool is_chat = false;
+    if(pack["is_chat"].get<std::string>() == "true") {
+        is_chat = true;
+    } else if (pack["is_chat"].get<std::string>() == "false") {
+        is_chat = false;
+    } else {
+        json j = json{
+            {"action", func_name},
+            {"message", "Некорректный флаг is_chat"},
+        };
+        Answer(ws, clientError, j);
+        return;
+    }
+
+    if(!is_chat) {
+        //Проверяем, имеет ли этот пользователь доступ к этому контакту
+        json Contact = json{};
+        if (Database::prepareStatement("SELECT id FROM contacts WHERE (initiator_uin = ? OR destination_uin = ?) AND is_chat = ? AND id = ? AND is_approved = ?")) {
+            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+                uin,
+                uin,
+                false,
+                dest_id,
+                true
+            };
+
+            Contact = Database::executeSelect(params);
+
+            if(Contact.empty()) {
+                json j = json{
+                    {"action", func_name},
+                    {"message", "Контакт не существует"},
+                };
+                Answer(ws, clientError, j);
+                return;
+            }
+        } else {
+            ThrowSQLError(ws, func_name);
+            return;
+        }
+
+        //Доставляем сообщение собеседнику
+        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+                json j = json{
+                    {"action", func_name},
+                    {"dest_id", dest_id},
+                };
+                Answer(WsServer::authorizedSockets[dest_uin], ok, j);
+        }
         return;
     }
 }

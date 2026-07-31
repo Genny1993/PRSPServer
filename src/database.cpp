@@ -1,4 +1,5 @@
 #include "database.h"
+#include "logger.h"
   
 // Инициализация статических переменных
 std::unique_ptr<sql::Driver> Database::driver = nullptr;
@@ -42,18 +43,23 @@ bool Database::debug = false;
             isConnected = true;
             lastError.clear();
             
-            std::cout << "✅ [DB] Успешное подключение к MariaDB" << std::endl;
+            if(debug) {
+                Logger::info(std::string("[DB] ✅ Успешное подключение к MariaDB"));
+            }
             return true;
             
         } catch (sql::SQLException& e) {
             lastError = "Ошибка подключения: " + std::string(e.what());
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
-            std::cerr << "Код ошибки: " << e.getErrorCode() << std::endl;
+            if(debug) {
+                Logger::error(std::string("[DB] ❌ ") + lastError + std::string(" Код ошибки: ") + std::to_string(e.getErrorCode()));
+            }
             isConnected = false;
             return false;
         } catch (std::exception& e) {
             lastError = "Ошибка: " + std::string(e.what());
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            if(debug) {
+                Logger::error(std::string("[DB] ❌ ") + lastError);
+            }
             isConnected = false;
             return false;
         }
@@ -73,10 +79,14 @@ bool Database::debug = false;
             }
             
             isConnected = false;
-            std::cout << "✅[DB] Соединение с MariaDB закрыто" << std::endl;
+            if(debug) {
+                Logger::info(std::string("[DB] ✅ Соединение с MariaDB закрыто"));
+            }
             
         } catch (sql::SQLException& e) {
-            std::cerr << "❌[DB ERROR] Ошибка при закрытии соединения: " << e.what() << std::endl;
+            if(debug) {
+                Logger::error(std::string("[DB] ❌ Ошибка при закрытии соединения: ") + e.what());
+            }
         }
     }
     
@@ -84,20 +94,24 @@ bool Database::debug = false;
     bool Database::prepareStatement(const std::string& sqlQuery) {
         if (!isConnected || !connection) {
             lastError = "Нет активного соединения с БД";
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            if(debug) {
+                Logger::error(std::string("[DB] ❌ ") + lastError);
+            }
             return false;
         }
         
         try {
             preparedStatement.reset(connection->prepareStatement(sqlQuery));
             if(debug) {
-                std::cout << "✅ [DB] Подготовлен запрос: " << sqlQuery << std::endl;
+                Logger::info(std::string("[DB] ✅ Подготовлен запрос: ") + sqlQuery);
             }
             return true;
             
         } catch (sql::SQLException& e) {
             lastError = "Ошибка подготовки запроса: " + std::string(e.what());
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            if(debug) {
+                Logger::error(std::string("[DB] ❌") + sqlQuery);
+            }
             return false;
         }
     }
@@ -108,7 +122,9 @@ bool Database::debug = false;
         
         if (!isConnected || !connection || !preparedStatement) {
             lastError = "Нет активного соединения или неподготовлен запрос";
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            if(debug) {
+                Logger::error(std::string("[DB] ❌ ") + lastError);
+            }
             return result;
         }
         
@@ -179,12 +195,12 @@ bool Database::debug = false;
                 result.push_back(row);
             }
             if(debug) {
-                std::cout << "✅ [DB] SELECT выполнен успешно. Получено строк: " << result.size() << std::endl;
+                Logger::info(std::string("[DB] ✅ SELECT выполнен. ") + result.dump(4));
             }
             
         } catch (sql::SQLException& e) {
             lastError = "Ошибка выполнения SELECT: " + std::string(e.what());
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            Logger::error(std::string("[DB] ❌ ") + lastError);
         }
         
         return result;
@@ -194,7 +210,9 @@ bool Database::debug = false;
     int Database::executeUpdate(const std::vector<std::variant<int, double, std::string, bool, long long>>& params) {
         if (!isConnected || !connection || !preparedStatement) {
             lastError = "Нет активного соединения или неподготовлен запрос";
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            if(debug) {
+                Logger::error(std::string("[DB] ❌ ") + lastError);
+            }
             return -1;
         }
         
@@ -213,13 +231,13 @@ bool Database::debug = false;
             // Выполняем запрос
             int affectedRows = preparedStatement->executeUpdate();
             if(debug) {
-                std::cout << "✅ [DB] UPDATE выполнен успешно. Затронуто строк: " << affectedRows << std::endl;
+                Logger::info(std::string("[DB] ✅ UPDATE выполнен. Затронуто строк: ") + std::to_string(affectedRows));
             }
             return affectedRows;
             
         } catch (sql::SQLException& e) {
             lastError = "Ошибка выполнения UPDATE: " + std::string(e.what());
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            Logger::error(std::string("[DB] ❌ ") + lastError);
             return -1;
         }
     }
@@ -228,7 +246,9 @@ bool Database::debug = false;
     long long Database::executeInsertAndGetId(const std::vector<std::variant<int, double, std::string, bool, long long>>& params) {
         if (!isConnected || !connection || !preparedStatement) {
             lastError = "Нет активного соединения или неподготовлен запрос";
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            if(debug) {
+                Logger::error(std::string("[DB] ❌ ") + lastError);
+            }
             return -1;
         }
         
@@ -255,19 +275,19 @@ bool Database::debug = false;
                 if (generatedKeys && generatedKeys->next()) {
                     long long newId = generatedKeys->getInt64(1);
                     if(debug) {
-                        std::cout << "✅ [DB] INSERT выполнен успешно. Получен ID: " << newId << std::endl;
+                        Logger::info(std::string("[DB] ✅ INSERT выполнен. Получен ID: ") + std::to_string(newId));
                     }
                     return newId;
                 }
             }
             if(debug) {
-                std::cout << "⚠️ [DB] INSERT выполнен, но ID не получен" << std::endl;
+                Logger::warning(std::string("[DB] ⚠️ INSERT выполнен, но ID не получен"));
             }
             return -1;
             
         } catch (sql::SQLException& e) {
             lastError = "Ошибка выполнения INSERT: " + std::string(e.what());
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            Logger::error(std::string("[DB] ❌ ") + lastError);
             return -1;
         }
     }
@@ -289,7 +309,7 @@ bool Database::debug = false;
             preparedStatement.reset();
         }
         if(debug) {
-            std::cout << "✅ [DB] Подготовленный запрос очищен" << std::endl;
+            Logger::info(std::string("[DB] ✅ Подготовленный запрос очищен."));
         }
     }
     
@@ -303,12 +323,14 @@ bool Database::debug = false;
         try {
             connection->setAutoCommit(false);
             if(debug) {
-                std::cout << "✅ [DB] Транзакция начата" << std::endl;
+                Logger::info(std::string("[DB] ✅ Транзакция начата."));
             }
             return true;
         } catch (sql::SQLException& e) {
             lastError = "Ошибка начала транзакции: " + std::string(e.what());
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            if(debug) { 
+                Logger::error(std::string("[DB] ❌ ") + lastError);
+            }
             return false;
         }
     }
@@ -323,11 +345,15 @@ bool Database::debug = false;
         try {
             connection->commit();
             connection->setAutoCommit(true);
-            std::cout << "✅ [DB] Транзакция зафиксирована" << std::endl;
+            if(debug) {
+                Logger::info(std::string("[DB] ✅ Транзакция зафиксирована."));
+            }
             return true;
         } catch (sql::SQLException& e) {
             lastError = "Ошибка фиксации транзакции: " + std::string(e.what());
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            if(debug) {
+                Logger::error(std::string("[DB] ❌ ") + lastError);
+            }
             return false;
         }
     }
@@ -342,11 +368,15 @@ bool Database::debug = false;
         try {
             connection->rollback();
             connection->setAutoCommit(true);
-            std::cout << "✅ [DB] Транзакция откачена" << std::endl;
+            if(debug) {
+                Logger::info(std::string("[DB] ✅ Транзакция откачена."));
+            }
             return true;
         } catch (sql::SQLException& e) {
-            lastError = "Ошибка отката транзакции: " + std::string(e.what());
-            std::cerr << "❌ [DB ERROR] " << lastError << std::endl;
+            if(debug) {
+                lastError = "Ошибка отката транзакции: " + std::string(e.what());
+                Logger::error(std::string("[DB] ❌ ") + lastError);
+            }
             return false;
         }
     }

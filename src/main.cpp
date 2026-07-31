@@ -7,6 +7,8 @@
 #include <App.h>
 #include "crypt.h"
 #include "conf.h"
+#include "logger.h"
+
 #include "database.h"
 #include "wsserver.h"
 
@@ -17,7 +19,7 @@ int main() {
 
     std::cout << "╔══════════════════════════════════════════════════════════════════╗\n";
     std::cout << "║                                                                  ║\n";
-    std::cout << "║                    🪪 ПРСП Сервер v1.1.0 🪪                      ║\n";
+    std::cout << "║                    🪪 ПРСП Сервер v1.2.0 🪪                      ║\n";
     std::cout << "║                                                                  ║\n";
     std::cout << "║            🔐 Паспортно-релейная система передачи 🔐             ║\n";
     std::cout << "║                                                                  ║\n";
@@ -29,12 +31,17 @@ int main() {
 
     Conf::printAll();
     
+     if(Conf::getDebug()) {
+        Logger::init("server.log", true, true);
+    }
+    
     Database::setDebug(Conf::getDebug());
     if (!Database::openConnection(Conf::getDbHost(), Conf::getDbUser(), Conf::getDbPassword(), Conf::getDbName(), Conf::getDbPort())) {
         return 1;
     }
 
     WsServer::setDebug(Conf::getDebug());
+
     WsServer::init();
     WsServer::run();
 

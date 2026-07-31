@@ -1038,7 +1038,6 @@ void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack) {
     if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
     if(!VerifyRoleEnv(ws, uin, {"user", "admin"}, func_name)) return;
 
-
     json j = json{
         {"action", func_name},
         {"UIN", uin}
@@ -1052,7 +1051,7 @@ void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack) {
         SELECT DISTINCT cu2.user_uin, cu2.chat_id, cu.id
         FROM chat_users AS cu
         LEFT JOIN chats AS c ON c.id = cu.chat_id
-        LEFT JOIN chat_users AS cu2 ON cu.chat_id = cu2.chat_id 
+        INNER JOIN chat_users AS cu2 ON cu.chat_id = cu2.chat_id 
             AND cu.user_uin != cu2.user_uin
             AND cu2.confirmed = TRUE
         WHERE cu.user_uin = ? 
@@ -1064,7 +1063,6 @@ void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack) {
         };
 
         ChatUsers = Database::executeSelect(params);
-
         for (auto& item : ChatUsers) {
             if (item.is_object()) {
                 long long int c_uin = item["user_uin"].get<long long int>();
@@ -1082,7 +1080,6 @@ void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack) {
         ThrowSQLError(ws, func_name);
         return;
     }
-
     return;
 }
 
@@ -1111,7 +1108,7 @@ void BroadcastOffline(WebSocketType* ws, const nlohmann::json& pack) {
         SELECT DISTINCT cu2.user_uin, cu2.chat_id, cu.id
         FROM chat_users AS cu
         LEFT JOIN chats AS c ON c.id = cu.chat_id
-        LEFT JOIN chat_users AS cu2 ON cu.chat_id = cu2.chat_id 
+        INNER JOIN chat_users AS cu2 ON cu.chat_id = cu2.chat_id 
             AND cu.user_uin != cu2.user_uin
             AND cu2.confirmed = TRUE
         WHERE cu.user_uin = ? 

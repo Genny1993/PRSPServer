@@ -28,7 +28,7 @@ bool WsServer::debug = false;
         };
 
         if(debug) {
-            std::cout << "📊 Total connected clients: " << authorizedSockets.size() << std::endl;
+            Logger::info(std::string("📊 Всего подключено клиентов: ") + std::to_string(authorizedSockets.size()));
         }
 
         json pack = json{
@@ -55,7 +55,7 @@ bool WsServer::debug = false;
                 authKeys.erase(it->first);
                 authorizedSockets.erase(it);
                 if (debug) {
-                    std::cout << "📊 Total connected clients: " << authorizedSockets.size() << std::endl;
+                    Logger::info(std::string("📊 Всего подключено клиентов: ") + std::to_string(authorizedSockets.size()));
                 }
                 return;
             }
@@ -76,7 +76,7 @@ bool WsServer::debug = false;
             // Обработчик открытия соединения
             .open = [](WebSocketType* ws) {
                 if(debug) {
-                    std::cout << "🌐 Клиент подключен" << std::endl;
+                    Logger::info("🌐 Клиент подключен");
                 }
                 // Отправляем приветствие только новому клиенту
                 std::string jstr = hideKeyInJson(hideKey(Conf::getMasterKey()));
@@ -88,6 +88,11 @@ bool WsServer::debug = false;
                 };
 
                 std::string sanswer = answer.dump();
+
+                if(debug) {
+                    Logger::info(std::string("📨 Отправлен пакет: ") + answer.dump(4));
+                }
+
                 bool result = ws->send(sanswer, uWS::OpCode::TEXT);
                 if(!result) {
                     ws->close();
@@ -100,24 +105,18 @@ bool WsServer::debug = false;
                 std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
                 (void)opCode;
                 
-                if(debug) {
-                    // Выводим полученное сообщение в консоль
-                    std::cout << "📨 Получено: " << message << std::endl;
-                }
-                
                 //Парсим JSON
                 try {
                     nlohmann::json json = nlohmann::json::parse(decryptAES(std::string(message), Conf::getMasterKeyBin()));
-
+                    if(debug) {
+                        Logger::info(std::string("📨 Получен пакет: ") + json.dump(4));
+                    }
                     if(!json.contains("func")) {
                         nlohmann::json j = nlohmann::json {
                             {"action", "startpoint"},
                             {"message", "Нет определения функции func"},
                         };
                         Answer(ws, clientError, j);
-                        if(debug) {
-                            std::cerr << "Нет определения функции func" << std::endl;
-                        }
                         return;
                     }
                     if(!json.contains("pack")) {
@@ -126,9 +125,6 @@ bool WsServer::debug = false;
                             {"message", "Нет передаваемого пакета данных pack"},
                         };
                         Answer(ws, clientError, j);
-                        if(debug) {
-                            std::cerr << "Нет передаваемого пакета данных pack" << std::endl;
-                        }
                         return;
                     }
 
@@ -223,9 +219,7 @@ bool WsServer::debug = false;
 
                 } catch (const nlohmann::json::parse_error& e) {
                     // Логируем ошибку, чтобы знать, что прислал клиент
-                    if(debug) {
-                        std::cerr << "Ошибка парсинга JSON: " << e.what() << std::endl;
-                    }
+                    Logger::error(std::string("Ошибка при парсинге JSON пакета: ") + decryptAES(std::string(message), Conf::getMasterKeyBin()));
                     // Сервер продолжает работу!
                     nlohmann::json j = nlohmann::json {
                         {"action", "startpoint"},
@@ -243,8 +237,8 @@ bool WsServer::debug = false;
                 removeSocket(ws);
                 
                 if(debug) {
-                    std::cout << "🔌 Клиент отключился. Код: " << code 
-                              << " Сообщение: " << message << std::endl;
+                    Logger::info(std::string("🔌 Клиент отключился. Код: ") + std::to_string(code) 
+                    + std::string(" Сообщение: ") + std::string(message));
                 }
                 return;
             }
@@ -260,13 +254,12 @@ bool WsServer::debug = false;
         // Запуск прослушивания порта
         app->listen(Conf::getServicePort(), [](auto* listenSocket) {
             if (listenSocket) {
-                std::cout << "✅ Сервер прослушивает порт " + std::to_string(Conf::getServicePort()) 
-                          << " (ws://localhost:" + std::to_string(Conf::getServicePort()) + ")" << std::endl;
-                std::cout << "🛑 Нажмите Ctrl+C для остановки" << std::endl;
-                std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" << std::endl;
-                std::cout << "✨ Готово к приему подключений" << std::endl;
+                Logger::info("✅ Сервер прослушивает порт " + std::to_string(Conf::getServicePort()));
+                Logger::info("(ws://localhost:" + std::to_string(Conf::getServicePort()) + ")");
+                Logger::info("🛑 Нажмите Ctrl+C для остановки");
+                Logger::info("✨ Готово к приему подключений");
             } else {
-                std::cout << "❌ проблема с прослушиванием порта " + std::to_string(Conf::getServicePort()) << std::endl;
+                Logger::error(std::string("❌ проблема с прослушиванием порта ") + std::to_string(Conf::getServicePort()));
             }
         });
     

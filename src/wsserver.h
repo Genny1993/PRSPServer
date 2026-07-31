@@ -8,6 +8,7 @@
 #include <memory>
 #include <App.h>
 #include "conf.h"
+#include "logger.h"
 
 // Тип для WebSocket с nullptr_t в качестве UserData
 using WebSocketType = uWS::WebSocket<false, true, std::nullptr_t>;

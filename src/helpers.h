@@ -14,6 +14,7 @@
 #include <vector>
 #include <iostream>
 #include "crypt.h"
+#include "prepared_statement_pool.h"
 
 std::string_view serverError = "SERVER_ERROR";
 std::string_view clientError = "CLIENT_ERROR";
@@ -49,33 +50,64 @@ bool ContactsBroadcast(long long int uin, std::string_view status, const auto& p
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 
     nlohmann::json Contacts = nlohmann::json{};
-    if (Database::prepareStatement("SELECT c.id, CASE WHEN c.initiator_uin = ? THEN c.destination_uin ELSE c.initiator_uin END AS UIN, CASE WHEN c.initiator_uin = ? THEN dest_user.pseudonym ELSE init_user.pseudonym END AS pseudonym, CASE WHEN c.initiator_uin = ? THEN 'initiator' ELSE 'destination' END AS my_role, CASE WHEN c.initiator_uin = ? THEN dest_user.status ELSE init_user.status END AS status, CASE WHEN c.initiator_uin = ? THEN dest_user.is_active ELSE init_user.is_active END AS is_active, c.is_approved FROM contacts c LEFT JOIN users init_user ON c.initiator_uin = init_user.UIN LEFT JOIN users dest_user ON c.destination_uin = dest_user.UIN WHERE (c.initiator_uin = ? OR c.destination_uin = ?) AND c.is_approved = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            uin,
-            uin,
-            uin,
-            uin,
-            uin,
-            uin,
-            uin,
-            true
-        };
+    auto& stmt = PreparedStatementPool::getStatement("all_contacts_uins");  
+    Params params = {
+        uin,
+        uin,
+        uin,
+        uin,
+        uin,
+        uin,
+        uin,
+        true
+    };
 
-        Contacts = Database::executeSelect(params);
+    Contacts = stmt.executeSelect(params);
 
-        for (auto& item : Contacts) {
-            if (item.is_object()) {
-                long long int c_uin = item["UIN"].get<long long int>();
-                if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
-                    Answer(WsServer::authorizedSockets[c_uin], status, pack);
-                }
+    for (auto& item : Contacts) {
+        if (item.is_object()) {
+            long long int c_uin = item["UIN"].get<long long int>();
+            if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
+                Answer(WsServer::authorizedSockets[c_uin], status, pack);
             }
         }
-    } else {
-        return false;
     }
-
     return true;
+}
+
+bool AllChatsAllUsersBroadcastOF(long long int uin, std::string_view status, std::string_view action) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
+    nlohmann::json ChatUsers = nlohmann::json{};
+    auto& stmt = PreparedStatementPool::getStatement("all_chat_contacts_uins");  
+    Params params = {
+        uin
+    };
+
+    ChatUsers = stmt.executeSelect(params);
+    for (auto& item : ChatUsers) {
+        if (item.is_object()) {
+            long long int c_uin = item["user_uin"].get<long long int>();
+            if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
+                json j = json{
+                    {"action", std::string(action) + "Chat"},
+                    {"chat_id", item["chat_id"]},
+                    {"request_id", item["id"]}
+                };
+                Answer(WsServer::authorizedSockets[c_uin], status, j);
+            }
+        }
+    }
+    return true;
+}
+
+bool SendToUin(long long int uin, std::string_view status, const auto& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+    if (WsServer::authorizedSockets.find(uin) != WsServer::authorizedSockets.end()) {
+        Answer(WsServer::authorizedSockets[uin], status, pack);
+        return true;
+    }
+    return false;
 }
 
 std::string hashPassword(const std::string& pwd) {

@@ -8,6 +8,7 @@
 #include <random>
 #include <openssl/sha.h>
 #include "database.h"
+#include "prepared_statement_pool.h"
 
 bool validatePassword(const std::string& p) {
     if (p.length() < 8 || p.length() > 30) return false;
@@ -60,26 +61,22 @@ bool verifyAuth(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int u
             return false;
         }
     } else {
-        if (Database::prepareStatement("SELECT password_hash, auth_token, aes_encryption_key, roles, is_active, pseudonym, status FROM users WHERE UIN = ? AND is_active = ?")) {
-            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                uin,
-                true
-            };
-            json verifyUser = Database::executeSelect(params);
+        auto& stmt = PreparedStatementPool::getStatement("exist_user");
+        Params params = {
+            uin,
+            true
+        };
+        json verifyUser = stmt.executeSelect(params);
 
-            if(verifyUser.empty()) {
-                return false;
-            } else {
-                if(verifyUser[0]["auth_token"] == token && verifyUser[0]["is_active"] == "1") {
-                    WsServer::addSocket(ws, token, verifyUser[0]["roles"], verifyUser[0]["aes_encryption_key"], verifyUser[0]["is_active"], uin, verifyUser[0]["pseudonym"], verifyUser[0]["status"]);
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-       
-        } else {
+        if(verifyUser.empty()) {
             return false;
+        } else {
+            if(verifyUser[0]["auth_token"] == token && verifyUser[0]["is_active"] == "1") {
+                WsServer::addSocket(ws, token, verifyUser[0]["roles"], verifyUser[0]["aes_encryption_key"], verifyUser[0]["is_active"], uin, verifyUser[0]["pseudonym"], verifyUser[0]["status"]);
+                return true;
+            } else {
+                return false;
+            }
         }
     }
     return false;
@@ -102,19 +99,18 @@ bool verifyRole(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int u
         }
         return false;  // Ни один ключ не найден
     } else {
-        if (Database::prepareStatement("SELECT password_hash, auth_token, aes_encryption_key, roles, is_active, pseudonym, status FROM users WHERE UIN = ? AND is_active = ?")) {
-            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                uin,
-                true
-            };
-            json verifyUser = Database::executeSelect(params);
+        auto& stmt = PreparedStatementPool::getStatement("get_role");
+        Params params = {
+            uin,
+            true
+        };
+        json verifyUser = stmt.executeSelect(params);
 
-            if(verifyUser.empty()) {
-                return false;
-            } else {
-                json parsedJson = json::parse(WsServer::authKeys[uin]["roles"]);
-                for (const auto& role : roles) {
-                
+        if(verifyUser.empty()) {
+            return false;
+        } else {
+            json parsedJson = json::parse(WsServer::authKeys[uin]["roles"]);
+            for (const auto& role : roles) {
                 // Перебираем элементы массива
                 for (const auto& element : parsedJson) {
                     if (element.is_string() && element.get<std::string>() == role) {
@@ -123,12 +119,8 @@ bool verifyRole(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int u
                     }
                 }
             }
-                return false;  // Ни один ключ не найден
         }
-       
-        } else {
-            return false;
-        }
+        return false;  // Ни один ключ не найден
     }
     return false;
 }
@@ -206,5 +198,29 @@ bool validateMessageEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const s
         std::cerr << "Сообщение должно содержать не менее 1 символа и не более 5000" << std::endl;
         return false;
     }
+    return true;
+}
+
+bool ContactExistOption(long long int &initiator_uin, bool is_approved, uWS::WebSocket<false, true, std::nullptr_t>* ws, std::string_view func_name, const auto& pack) {
+    json Contact = json{};
+    auto& stmt = PreparedStatementPool::getStatement("contact_exist_option");
+    Params params = {
+        getIntAnyway(pack["contact_id"]),
+        getIntAnyway(pack["UIN"]),
+        is_approved
+    };
+
+    Contact = stmt.executeSelect(params);
+
+    if(Contact.empty()) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Контакт не существует"},
+        };
+        Answer(ws, clientError, j);
+        return false;
+    } else {
+        initiator_uin = getIntAnyway(Contact[0]["initiator_uin"]);
+    } 
     return true;
 }

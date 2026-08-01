@@ -1,133 +1,118 @@
-#pragma once
+#ifndef DATABASE_H
+#define DATABASE_H
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#endif
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable: 4251)
-#endif
-
-#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 #include <variant>
-#include <map>
+#include <mutex>
 #include <mariadb/conncpp.hpp>
 #include <nlohmann/json.hpp>
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-
-using ParamValue = std::variant<int, double, std::string, bool, long long>;
 using json = nlohmann::json;
 
-class Database {
+// Вспомогательная структура для параметров
+using Param = std::variant<int, double, std::string, bool, long long>;
+using Params = std::vector<Param>;
 
+// Класс-обёртка для подготовленного запроса
+class PreparedStatementWrapper {
+private:
+    std::unique_ptr<sql::PreparedStatement> stmt;
+    sql::Connection* connection; // Для операций, требующих connection
+    
+public:
+    PreparedStatementWrapper() = default;
+    
+    PreparedStatementWrapper(sql::PreparedStatement* s, sql::Connection* conn) 
+        : stmt(s), connection(conn) {}
+    
+    // Запрещаем копирование
+    PreparedStatementWrapper(const PreparedStatementWrapper&) = delete;
+    PreparedStatementWrapper& operator=(const PreparedStatementWrapper&) = delete;
+    
+    // Разрешаем перемещение
+    PreparedStatementWrapper(PreparedStatementWrapper&&) = default;
+    PreparedStatementWrapper& operator=(PreparedStatementWrapper&&) = default;
+    
+    // Проверка валидности
+    bool isValid() const { return stmt != nullptr; }
+    
+    // Получить сырой указатель (для совместимости)
+    sql::PreparedStatement* get() { return stmt.get(); }
+    
+    // Выполнить SELECT и вернуть JSON
+    json executeSelect(const std::vector<Param>& params);
+    
+    // Выполнить INSERT/UPDATE/DELETE
+    int executeUpdate(const std::vector<Param>& params);
+    
+    // Выполнить INSERT и вернуть ID
+    long long executeInsertAndGetId(const std::vector<Param>& params);
+    
+    // Очистить параметры
+    void clearParameters() {
+        if (stmt) stmt->clearParameters();
+    }
+    
+    // Установить параметры напрямую (для особых случаев)
+    bool setParams(const std::vector<Param>& params);
+};
+
+// Основной класс Database
+class Database {
 private:
     // Статические переменные
     static std::unique_ptr<sql::Driver> driver;
     static std::unique_ptr<sql::Connection> connection;
-    static std::unique_ptr<sql::PreparedStatement> preparedStatement;
     static bool isConnected;
     static std::string lastError;
     static bool debug;
     
-    // Приватный конструктор (статический класс)
-    Database() = delete;
-    ~Database() = delete;
-    Database(const Database&) = delete;
-    Database& operator=(const Database&) = delete;
+    // Мьютекс для потокобезопасности
+    static std::mutex connectionMutex;
     
-    // Внутренний метод для установки параметров
-    template<typename T>
-    static void setParameter(sql::PreparedStatement* pstmt, int index, const T& value) {
-        if constexpr (std::is_same_v<T, int>) {
-            pstmt->setInt(index, value);
-        }
-        else if constexpr (std::is_same_v<T, long long>) {
-            pstmt->setInt64(index, value);
-        }
-        else if constexpr (std::is_same_v<T, double>) {
-            pstmt->setDouble(index, value);
-        }
-        else if constexpr (std::is_same_v<T, float>) {
-            pstmt->setDouble(index, static_cast<double>(value));
-        }
-        else if constexpr (std::is_same_v<T, std::string>) {
-            pstmt->setString(index, value);
-        }
-        else if constexpr (std::is_same_v<T, const char*>) {
-            pstmt->setString(index, std::string(value));
-        }
-        else if constexpr (std::is_same_v<T, bool>) {
-            pstmt->setBoolean(index, value);
-        }
-        else if constexpr (std::is_same_v<T, std::nullptr_t>) {
-            pstmt->setNull(index, 0);
-        }
-        else {
-            pstmt->setString(index, std::to_string(value));
-        }
-    }
-    
-    // Конвертация sql::SQLString в std::string
-    static std::string sqlStringToString(const sql::SQLString& sqlStr);
-
+    // Вспомогательные методы (теперь public)
 public:
-
-    //Включен режим отладки
-    static void setDebug(bool val);
-
-    // Открыть соединение с БД
-    static bool openConnection(const std::string& host, const std::string& username, const std::string& password, const std::string& database, int port = 3306);
+    // Делаем эти методы public, чтобы PreparedStatementWrapper мог их использовать
+    static std::string sqlStringToString(const sql::SQLString& sqlStr);
+    static void setParameter(sql::PreparedStatement* stmt, int index, const Param& value);
     
-    // Закрыть соединение
+    // Инициализация и управление соединением
+    static bool openConnection(const std::string& host, 
+                              const std::string& username, 
+                              const std::string& password,
+                              const std::string& database,
+                              int port = 3306);
+    
     static void closeConnection();
-
-    // Подготовить SQL запрос
-    static bool prepareStatement(const std::string& sqlQuery);
-    
-    // Выполнить SELECT запрос с параметрами и вернуть JSON
-    static json executeSelect(const std::vector<std::variant<int, double, std::string, bool, long long>>& params = {});
-    
-    // Выполнить INSERT/UPDATE/DELETE запрос с параметрами
-    static int executeUpdate(const std::vector<std::variant<int, double, std::string, bool, long long>>& params = {});
-    
-    // Выполнить INSERT и вернуть сгенерированный ID
-    static long long executeInsertAndGetId(const std::vector<std::variant<int, double, std::string, bool, long long>>& params = {});
-    
-    // Получить последнюю ошибку
-    static std::string getLastError();
-    
-    // Проверить соединение
     static bool isConnectedToDB();
+    static std::string getLastError();
+    static void setDebug(bool val);
     
-    // Очистить подготовленный запрос
-    static void clearPreparedStatement();
+    // Подготовить запрос и вернуть объект
+    static PreparedStatementWrapper prepareStatement(const std::string& sqlQuery);
     
-    // Начать транзакцию
+    // Выполнение с переданным подготовленным запросом
+    static json executeSelect(PreparedStatementWrapper& wrapper, 
+                             const std::vector<Param>& params);
+    
+    static int executeUpdate(PreparedStatementWrapper& wrapper, 
+                            const std::vector<Param>& params);
+    
+    static long long executeInsertAndGetId(PreparedStatementWrapper& wrapper, 
+                                          const std::vector<Param>& params);
+    
+    // Транзакции
     static bool beginTransaction();
-    
-    // Зафиксировать транзакцию
     static bool commit();
-    
-    // Откатить транзакцию
     static bool rollback();
     
-    // Прямой доступ к connection для особых случаев
+    // Прямой доступ (для особых случаев)
     static sql::Connection* getConnection();
     
-    // Прямой доступ к prepared statement
-    static sql::PreparedStatement* getPreparedStatement();
+    // Добавляем дружественный класс, чтобы он имел доступ к private членам
+    friend class PreparedStatementWrapper;
 };
+
+#endif // DATABASE_H

@@ -34,6 +34,13 @@ bool Answer(WebSocketType* ws, std::string_view status, const auto& pack) {
     if(!result) {
         ws->close();
     }
+    if(Conf::getDebug()) {
+        if(status == ok) {
+            Logger::info(std::string("📨 Отправлен пакет: ") + answer.dump(4));
+        } else {
+            Logger::error(std::string("📨❌ Отправлен пакет с ошибкой: ") + answer.dump(4));
+        }
+    }
     return result;
 }
 
@@ -151,7 +158,6 @@ void ThrowSQLError(WebSocketType* ws, std::string_view func_name) {
         {"message", "Ошибка при подготовке SQL-запроса"},
     };
     Answer(ws, serverError, j);
-    std::cerr << "Ошибка при подготовке SQL-запроса" << std::endl;
     return;
 }
 

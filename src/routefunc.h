@@ -50,6 +50,11 @@ void GetOneMessage(WebSocketType* ws, const nlohmann::json& pack);
 void SendWakeUp(WebSocketType* ws, const nlohmann::json& pack);
 
 void Router(WebSocketType* ws, std::string_view message, const std::string& method, const nlohmann::json& pack) {
+    
+    if(Conf::getDebug()) {
+        Logger::info(std::string("Вызов функции API: ") + method);
+    }
+    
     if(method == "echo") { Echo(ws, message, pack); return; }
     if(method == "register") { Register(ws, pack); return; }
     if(method == "login") { Login(ws, pack); return; }

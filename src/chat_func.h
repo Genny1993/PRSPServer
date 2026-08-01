@@ -779,6 +779,13 @@ void FindChats(WebSocketType* ws, const nlohmann::json& pack) {
     if(!VerifyRoleEnv(ws, getIntAnyway(pack["UIN"]), {"user", "admin"}, func_name)) return;
 
     if(!RequireField(ws, pack, "find_string", func_name, "Нет передаваемой строки поиска")) return;
+
+    if(!RequireField(ws, pack, "limit", func_name, "Нет передаваемого limit")) return;
+    if(!RequireField(ws, pack, "page", func_name, "Нет передаваемого page")) return;
+
+    long long int limit = getIntAnyway(pack["limit"]);
+    long long int page = getIntAnyway(pack["page"]);
+
     if(pack["find_string"].get<std::string>().length() < 1 ) {
         json j = json{
             {"action", func_name},
@@ -788,7 +795,34 @@ void FindChats(WebSocketType* ws, const nlohmann::json& pack) {
         return;
     };
 
-    if (Database::prepareStatement("SELECT id, name, description FROM chats WHERE deleted = ? AND (name LIKE CONCAT('%', ?, '%') OR description LIKE CONCAT('%', ?, '%'))")) {
+    //Определяем количество существующих страниц.
+    json Pages = json{};
+    int pages = 0;
+    if (Database::prepareStatement(R"(
+        SELECT (COUNT(*) + ? - 1) / ? AS total_pages
+        FROM chats
+        WHERE deleted = ? 
+            AND 
+                (name LIKE CONCAT('%', ?, '%') 
+                OR 
+                description LIKE CONCAT('%', ?, '%'));)"
+        )) {
+        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
+            limit,
+            limit,
+            false,
+            pack["find_string"].get<std::string>(),
+            pack["find_string"].get<std::string>(),
+        };
+
+        Pages = Database::executeSelect(params);
+        pages = getIntAnyway(Pages[0]["total_pages"]);
+    } else {
+        ThrowSQLError(ws, func_name);
+        return;
+    }
+
+    if (Database::prepareStatement("SELECT id, name, description FROM chats WHERE deleted = ? AND (name LIKE CONCAT('%', ?, '%') OR description LIKE CONCAT('%', ?, '%')) LIMIT " + std::to_string(limit) + " OFFSET " + std::to_string(limit * (page - 1)) + ";")) {
         std::vector<std::variant<int, double, std::string, bool, long long>> params = {
             false,
             pack["find_string"].get<std::string>(),
@@ -799,6 +833,7 @@ void FindChats(WebSocketType* ws, const nlohmann::json& pack) {
 
         json j = json{
             {"action", func_name},
+            {"pages", pages},
             {"chats", findChats}
         };
         Answer(ws, ok, j);

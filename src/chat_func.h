@@ -949,7 +949,7 @@ void NewChatRequest(WebSocketType* ws, const nlohmann::json& pack) {
                 {"action", func_name},
                 {"message", "Чат не существует или удален"},
             };
-            Answer(ws, ok, j);
+            Answer(ws, clientError, j);
             return;
         }
     } else {
@@ -976,7 +976,7 @@ void NewChatRequest(WebSocketType* ws, const nlohmann::json& pack) {
                 {"action", func_name},
                 {"message", "Вы уже подали заявку или состоите в чате"},
             };
-            Answer(ws, ok, j);
+            Answer(ws, clientError, j);
             return;
         }
     } else {
@@ -1113,7 +1113,7 @@ void CancelChatRequest(WebSocketType* ws, const nlohmann::json& pack) {
                 {"action", func_name},
                 {"message", "Заявки не существует, или она уже принята"},
             };
-            Answer(ws, ok, j);
+            Answer(ws, clientError, j);
             return;
         }
     } else {
@@ -1239,7 +1239,7 @@ void RejectChatRequest(WebSocketType* ws, const nlohmann::json& pack) {
                 {"action", func_name},
                 {"message", "Заявки не существует, или она уже принята"},
             };
-            Answer(ws, ok, j);
+            Answer(ws, clientError, j);
             return;
         }
     } else {
@@ -1368,7 +1368,7 @@ void AcceptChatRequest(WebSocketType* ws, const nlohmann::json& pack) {
                 {"action", func_name},
                 {"message", "Заявки не существует, или она уже принята"},
             };
-            Answer(ws, ok, j);
+            Answer(ws, clientError, j);
             return;
         }
     } else {
@@ -1512,7 +1512,7 @@ void RemoveChatContact(WebSocketType* ws, const nlohmann::json& pack) {
                 {"action", func_name},
                 {"message", "Контакта чата не существует"},
             };
-            Answer(ws, ok, j);
+            Answer(ws, clientError, j);
             return;
         }
     } else {
@@ -1637,7 +1637,7 @@ void RemoveChatContactAdmin(WebSocketType* ws, const nlohmann::json& pack) {
                 {"action", func_name},
                 {"message", "Пользователя не существует"},
             };
-            Answer(ws, ok, j);
+            Answer(ws, clientError, j);
             return;
         }
     } else {

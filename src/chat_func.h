@@ -355,7 +355,7 @@ void ChangeChatName(WebSocketType* ws, const nlohmann::json& pack) {
 
 void ChangeChatDesc(WebSocketType* ws, const nlohmann::json& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
-    const std::string_view func_name = "changeChatName";
+    const std::string_view func_name = "changeChatDesc";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
     if(!RequireField(ws, pack, "auth_key", func_name, "Нет передаваемого токена авторизации")) return;
     if(!RequireField(ws, pack, "chat_id", func_name, "Нет передаваемого id чата")) return;

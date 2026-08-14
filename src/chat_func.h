@@ -2257,7 +2257,7 @@ void GetChatMembers(WebSocketType* ws, const nlohmann::json& pack) {
 void SendTypingChat(WebSocketType* ws, const nlohmann::json& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     
-    const std::string_view func_name = "getChatMembers";
+    const std::string_view func_name = "sendTypingChat";
     if(!RequireField(ws, pack, "UIN", func_name, "Нет передаваемого UIN")) return;
 
     long long int uin = getIntAnyway(pack["UIN"]);

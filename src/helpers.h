@@ -45,7 +45,7 @@ bool Answer(WebSocketType* ws, std::string_view status, const auto& pack) {
 }
 
 //Рассылка всем контактам в онлайне
-bool ContactsBroadcast(long long int uin, std::string_view status, const auto& pack) {
+/*bool ContactsBroadcast(long long int uin, std::string_view status, const auto& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 
     nlohmann::json Contacts = nlohmann::json{};
@@ -76,7 +76,7 @@ bool ContactsBroadcast(long long int uin, std::string_view status, const auto& p
     }
 
     return true;
-}
+}*/
 
 std::string hashPassword(const std::string& pwd) {
     std::random_device rd;

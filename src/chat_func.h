@@ -6,7 +6,7 @@
 #include "validators.h"
 #include "database.h"
 #include "crypt.h"
-
+/*
 void NewChat(WebSocketType* ws, const nlohmann::json& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     const std::string_view func_name = "newChat";
@@ -2327,4 +2327,4 @@ void SendTypingChat(WebSocketType* ws, const nlohmann::json& pack) {
         ThrowSQLError(ws, func_name);
         return;
     }
-}
+}*/

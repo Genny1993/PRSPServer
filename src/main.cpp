@@ -8,6 +8,7 @@
 #include "crypt.h"
 #include "conf.h"
 #include "logger.h"
+#include "prepared_statement_pool.h"
 
 #include "database.h"
 #include "wsserver.h"
@@ -19,7 +20,7 @@ int main() {
 
     std::cout << "╔══════════════════════════════════════════════════════════════════╗\n";
     std::cout << "║                                                                  ║\n";
-    std::cout << "║                    🪪 ПРСП Сервер v1.2.0 🪪                      ║\n";
+    std::cout << "║                    🪪 ПРСП Сервер v1.3.0 🪪                      ║\n";
     std::cout << "║                                                                  ║\n";
     std::cout << "║            🔐 Паспортно-релейная система передачи 🔐             ║\n";
     std::cout << "║                                                                  ║\n";
@@ -39,6 +40,10 @@ int main() {
     if (!Database::openConnection(Conf::getDbHost(), Conf::getDbUser(), Conf::getDbPassword(), Conf::getDbName(), Conf::getDbPort())) {
         return 1;
     }
+    
+    if(!PreparedStatementPool::initializeAll()) {
+        return 1;
+    };
 
     WsServer::setDebug(Conf::getDebug());
 

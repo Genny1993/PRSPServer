@@ -23,7 +23,7 @@ void AcceptContact(WebSocketType* ws, const nlohmann::json& pack);
 void DeclineContact(WebSocketType* ws, const nlohmann::json& pack);
 void UndoAddContact(WebSocketType* ws, const nlohmann::json& pack);
 void RemoveContact(WebSocketType* ws, const nlohmann::json& pack);
-/*void GetContacts(WebSocketType* ws, const nlohmann::json& pack);
+void GetContacts(WebSocketType* ws, const nlohmann::json& pack);
 void GetOutgoingRequests(WebSocketType* ws, const nlohmann::json& pack);
 void GetIncomingRequests(WebSocketType* ws, const nlohmann::json& pack);
 void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack);
@@ -40,7 +40,7 @@ void UnbanUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void KickUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack);
-void NewMessage(WebSocketType* ws, const nlohmann::json& pack);
+/*void NewMessage(WebSocketType* ws, const nlohmann::json& pack);
 void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack);
 void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack);
 void SetDeliveredMessage(WebSocketType* ws, const nlohmann::json& pack);
@@ -68,7 +68,7 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "declineContact") { DeclineContact(ws, pack); return; }
     if(method == "undoAddContact") { UndoAddContact(ws, pack); return; }
     if(method == "removeContact") { RemoveContact(ws, pack); return; }
-    /*if(method == "getContacts") { GetContacts(ws, pack); return; }
+    if(method == "getContacts") { GetContacts(ws, pack); return; }
     if(method == "getOutgoingRequests") { GetOutgoingRequests(ws, pack); return; }
     if(method == "getIncomingRequests") { GetIncomingRequests(ws, pack); return; }
     if(method == "broadcastOnline") { BroadcastOnline(ws, pack); return; }
@@ -84,7 +84,7 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "kickUserAdmin") { KickUserAdmin(ws, pack); return; }
     if(method == "changeRoleAdmin") { ChangeRoleAdmin(ws, pack); return; }
     if(method == "changeAddable") { ChangeAddable(ws, pack); return; }
-    if(method == "newMessage") { NewMessage(ws, pack); return; }
+    /*if(method == "newMessage") { NewMessage(ws, pack); return; }
     if(method == "getLastMessages") { GetLastMessages(ws, pack); return; }
     if(method == "getHistoryMessages") { GetHistoryMessages(ws, pack); return; }
     if(method == "setDeliveredMessage") { SetDeliveredMessage(ws, pack); return; }
@@ -672,7 +672,7 @@ void UndoAddContact(WebSocketType* ws, const nlohmann::json& pack) {
         getIntAnyway(pack["contact_id"])
     };
 
-    stmt2.executeUpdate(params);
+    stmt2.executeUpdate(params2);
                         
       
     //Отправляем ответ клиенту
@@ -754,7 +754,7 @@ void RemoveContact(WebSocketType* ws, const nlohmann::json& pack) {
     };
     SendToUin(destination_uin, ok, j2);
 }
-/*
+
 void GetContacts(WebSocketType* ws, const nlohmann::json& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 
@@ -767,68 +767,41 @@ void GetContacts(WebSocketType* ws, const nlohmann::json& pack) {
     long long int uin = getIntAnyway(pack["UIN"]);
 
     json Contacts = json{};
-      if (Database::prepareStatement(
-        "SELECT " 
-            "c.id, " 
-            "CASE WHEN c.initiator_uin = ? THEN c.destination_uin ELSE c.initiator_uin END AS UIN, " 
-            "CASE WHEN c.initiator_uin = ? THEN dest_user.pseudonym ELSE init_user.pseudonym END AS pseudonym, "
-            "CASE WHEN c.initiator_uin = ? THEN 'initiator' ELSE 'destination' END AS my_role, " 
-            "CASE WHEN c.initiator_uin = ? THEN dest_user.status ELSE init_user.status END AS status, "
-            "CASE WHEN c.initiator_uin = ? THEN dest_user.is_active ELSE init_user.is_active END AS is_active, "
-            "c.is_approved, "
-            "( "
-                "SELECT COUNT(*) " 
-                "FROM messages m " 
-                "WHERE m.dest_uin = ? "
-                "AND m.delivered = ? "
-                "AND is_chat = ? "
-                "AND dest_id = c.id "
-                "AND m.deleted = FALSE "
-            ") AS undelivered_count "
-        "FROM contacts c " 
-        "LEFT JOIN users init_user ON c.initiator_uin = init_user.UIN " 
-        "LEFT JOIN users dest_user ON c.destination_uin = dest_user.UIN " 
-        "WHERE (c.initiator_uin = ? OR c.destination_uin = ?) AND c.is_approved = ? "
-        "ORDER BY c.id ASC"
-        )) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            uin,
-            uin,
-            uin,
-            uin,
-            uin,
-            uin,
-            false,
-            false,
-            uin,
-            uin,
-            true
-        };
+    auto& stmt = PreparedStatementPool::getStatement("get_contacts");
+    Params params = {
+        uin,
+        uin,
+        uin,
+        uin,
+        uin,
+        uin,
+        false,
+        false,
+        uin,
+        uin,
+        true
+    };
 
-        Contacts = Database::executeSelect(params);
+    Contacts = stmt.executeSelect(params);
 
-        for (auto& item : Contacts) {
-            if (item.is_object()) {
-                long long int uin =  getIntAnyway(item["UIN"]);
-                if (WsServer::authorizedSockets.find(uin) != WsServer::authorizedSockets.end()) {
-                    item["online"] = true;
-                } else {
-                    item["online"] = false;
-                }
+    for (auto& item : Contacts) {
+        if (item.is_object()) {
+            long long int uin =  getIntAnyway(item["UIN"]);
+            if (WsServer::authorizedSockets.find(uin) != WsServer::authorizedSockets.end()) {
+                item["online"] = true;
+            } else {
+                item["online"] = false;
             }
         }
-
-        //Отправляем ответ клиенту
-        json j = json{
-            {"action", func_name},
-            {"contacts", Contacts},
-        };
-        Answer(ws, ok, j);
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
     }
+
+    //Отправляем ответ клиенту
+    json j = json{
+        {"action", func_name},
+        {"contacts", Contacts},
+    };
+    Answer(ws, ok, j);
+    return;
 }
 
 void GetOutgoingRequests(WebSocketType* ws, const nlohmann::json& pack) {
@@ -843,25 +816,21 @@ void GetOutgoingRequests(WebSocketType* ws, const nlohmann::json& pack) {
     long long int uin = getIntAnyway(pack["UIN"]);
 
     json Contacts = json{};
-    if (Database::prepareStatement("SELECT c.id, u.UIN, u.pseudonym, u.status, u.is_active FROM contacts AS c LEFT JOIN users AS u ON c.destination_uin = u.UIN WHERE initiator_uin = ? AND is_approved = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            uin,
-            false
-        };
+    auto& stmt = PreparedStatementPool::getStatement("outgoing_req");   
+    Params params = {
+        uin,
+        false
+    };
 
-        Contacts = Database::executeSelect(params);
+    Contacts = stmt.executeSelect(params);
 
-        //Отправляем ответ клиенту
-        json j = json{
-            {"action", func_name},
-            {"contacts", Contacts},
-        };
-        Answer(ws, ok, j);
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
+    //Отправляем ответ клиенту
+    json j = json{
+        {"action", func_name},
+        {"contacts", Contacts},
+    };
+    Answer(ws, ok, j);
+    return;
 }
 
 void GetIncomingRequests(WebSocketType* ws, const nlohmann::json& pack) {
@@ -876,26 +845,21 @@ void GetIncomingRequests(WebSocketType* ws, const nlohmann::json& pack) {
     long long int uin = getIntAnyway(pack["UIN"]);
 
     json Contacts = json{};
-    if (Database::prepareStatement("SELECT c.id, u.UIN, u.pseudonym, u.status, u.is_active FROM contacts AS c LEFT JOIN users AS u ON c.initiator_uin = u.UIN WHERE destination_uin = ? AND is_approved = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            uin,
-            false
-        };
+    auto& stmt = PreparedStatementPool::getStatement("ingoing_req");
+    Params params = {
+        uin,
+        false
+    };
 
-        Contacts = Database::executeSelect(params);
+    Contacts = stmt.executeSelect(params);
 
-        //Отправляем ответ клиенту
-        json j = json{
-            {"action", func_name},
-            {"contacts", Contacts},
-        };
-        Answer(ws, ok, j);
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
-
+    //Отправляем ответ клиенту
+    json j = json{
+        {"action", func_name},
+        {"contacts", Contacts},
+    };
+    Answer(ws, ok, j);
+    return;
 }
 
 void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack) {
@@ -910,48 +874,15 @@ void BroadcastOnline(WebSocketType* ws, const nlohmann::json& pack) {
     if(!VerifyAuthEnv(ws, uin, pack["auth_key"], func_name )) return;
     if(!VerifyRoleEnv(ws, uin, {"user", "admin"}, func_name)) return;
 
+    //Рассылаем всем контактам в сети
     json j = json{
         {"action", func_name},
         {"UIN", uin}
     };
-
     ContactsBroadcast(uin, ok, j);
 
-    //Рассылаем статус онлайн для всех пользователей чатов, где состоит пользователь в сети
-    json ChatUsers = json{};
-    if (Database::prepareStatement(R"(
-        SELECT DISTINCT cu2.user_uin, cu2.chat_id, cu.id
-        FROM chat_users AS cu
-        LEFT JOIN chats AS c ON c.id = cu.chat_id
-        INNER JOIN chat_users AS cu2 ON cu.chat_id = cu2.chat_id 
-            AND cu.user_uin != cu2.user_uin
-            AND cu2.confirmed = TRUE
-        WHERE cu.user_uin = ? 
-            AND cu.confirmed = TRUE
-            AND c.deleted = FALSE;)"
-    )) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            uin
-        };
-
-        ChatUsers = Database::executeSelect(params);
-        for (auto& item : ChatUsers) {
-            if (item.is_object()) {
-                long long int c_uin = item["user_uin"].get<long long int>();
-                if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
-                    json j = json{
-                        {"action", std::string(func_name) + "Chat"},
-                        {"chat_id", item["chat_id"]},
-                        {"request_id", item["id"]}
-                    };
-                    Answer(WsServer::authorizedSockets[c_uin], ok, j);
-                }
-            }
-        }
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
+    //Рассылаем статус для всех пользователей чатов в сети, где состоит пользователь
+    AllChatsAllUsersBroadcastOF(uin, ok, func_name);
     return;
 }
 
@@ -974,43 +905,8 @@ void BroadcastOffline(WebSocketType* ws, const nlohmann::json& pack) {
 
     ContactsBroadcast(uin, ok, j);
 
-    //Рассылаем статус оффлайн для всех пользователей чатов, где состоит пользователь в сети
-    json ChatUsers = json{};
-    if (Database::prepareStatement(R"(
-        SELECT DISTINCT cu2.user_uin, cu2.chat_id, cu.id
-        FROM chat_users AS cu
-        LEFT JOIN chats AS c ON c.id = cu.chat_id
-        INNER JOIN chat_users AS cu2 ON cu.chat_id = cu2.chat_id 
-            AND cu.user_uin != cu2.user_uin
-            AND cu2.confirmed = TRUE
-        WHERE cu.user_uin = ? 
-            AND cu.confirmed = TRUE
-            AND c.deleted = FALSE;)"
-    )) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            uin
-        };
-
-        ChatUsers = Database::executeSelect(params);
-
-        for (auto& item : ChatUsers) {
-            if (item.is_object()) {
-                long long int c_uin = item["user_uin"].get<long long int>();
-                if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
-                    json j = json{
-                        {"action", std::string(func_name) + "Chat"},
-                        {"chat_id", item["chat_id"]},
-                        {"request_id", item["id"]}
-                    };
-                    Answer(WsServer::authorizedSockets[c_uin], ok, j);
-                }
-            }
-        }
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
-
+    //Рассылаем статус для всех пользователей чатов в сети, где состоит пользователь
+    AllChatsAllUsersBroadcastOF(uin, ok, func_name);
     return;
 }
 
@@ -1028,31 +924,26 @@ void ChangePseudonym(WebSocketType* ws, const nlohmann::json& pack) {
 
     if(!RequireField(ws, pack, "new_pseudonym", func_name, "Нет передаваемого new_pseudonym")) return;
 
-    if (Database::prepareStatement("UPDATE users SET pseudonym = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            pack["new_pseudonym"].get<std::string>(),
-            uin
-        };
+    auto& stmt = PreparedStatementPool::getStatement("change_pseudo");
+    Params params = {
+        pack["new_pseudonym"].get<std::string>(),
+        uin
+    };
 
-        Database::executeUpdate(params);
-        WsServer::authKeys[uin]["pseudonym"] = pack["new_pseudonym"].get<std::string>();
-        json j = json{
-            {"action", func_name},
-            {"message", "Вы сменили псевдоним!"},
-        };
-        Answer(ws, ok, j);
+    stmt.executeUpdate(params);
+    WsServer::authKeys[uin]["pseudonym"] = pack["new_pseudonym"].get<std::string>();
+    json j = json{
+        {"action", func_name},
+        {"message", "Вы сменили псевдоним!"},
+    };
+    Answer(ws, ok, j);
         
-        json broadcast = json{
-            {"action", "broadcast" + std::string(func_name) },
-            {"UIN", uin},
-            {"pseudonym", pack["new_pseudonym"].get<std::string>()}
-        };
-        ContactsBroadcast(uin, ok, broadcast);
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
+    json broadcast = json{
+        {"action", "broadcast" + std::string(func_name) },
+        {"UIN", uin},
+        {"pseudonym", pack["new_pseudonym"].get<std::string>()}
+    };
+    ContactsBroadcast(uin, ok, broadcast);
     return;
 }
 
@@ -1070,31 +961,26 @@ void ChangeStatus(WebSocketType* ws, const nlohmann::json& pack) {
 
     if(!RequireField(ws, pack, "new_status", func_name, "Нет передаваемого new_status")) return;
 
-    if (Database::prepareStatement("UPDATE users SET status = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            pack["new_status"].get<std::string>(),
-            uin
-        };
+    auto& stmt = PreparedStatementPool::getStatement("change_status");
+    Params params = {
+        pack["new_status"].get<std::string>(),
+        uin
+    };
 
-        Database::executeUpdate(params);
-        WsServer::authKeys[uin]["status"] = pack["new_status"].get<std::string>();
-        json j = json{
-            {"action", func_name},
-            {"message", "Вы сменили статус!"},
-        };
-        Answer(ws, ok, j);
+    stmt.executeUpdate(params);
+    WsServer::authKeys[uin]["status"] = pack["new_status"].get<std::string>();
+    json j = json{
+        {"action", func_name},
+        {"message", "Вы сменили статус!"},
+    };
+    Answer(ws, ok, j);
         
-        json broadcast = json{
-            {"action", "broadcast" + std::string(func_name)},
-            {"UIN", uin},
-            {"status", pack["new_status"].get<std::string>()}
-        };
-        ContactsBroadcast(uin, ok, broadcast);
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
+    json broadcast = json{
+        {"action", "broadcast" + std::string(func_name)},
+        {"UIN", uin},
+        {"status", pack["new_status"].get<std::string>()}
+    };
+    ContactsBroadcast(uin, ok, broadcast);
     return;
 }
 
@@ -1113,24 +999,19 @@ void ChangeAES(WebSocketType* ws, const nlohmann::json& pack) {
     //Генерируем новый AES
     std::string new_aes = generateAES();
 
-    if (Database::prepareStatement("UPDATE users SET aes_encryption_key = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            new_aes,
-            uin
-        };
+    auto& stmt = PreparedStatementPool::getStatement("change_AES");
+    Params params = {
+        new_aes,
+        uin
+    };
 
-        Database::executeUpdate(params);
-        WsServer::authKeys[uin]["aes"] = new_aes;
-        json j = json{
-            {"action", func_name},
-            {"AES", new_aes},
-        };
-        Answer(ws, ok, j);
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
+    stmt.executeUpdate(params);
+    WsServer::authKeys[uin]["aes"] = new_aes;
+    json j = json{
+        {"action", func_name},
+        {"AES", new_aes},
+    };
+    Answer(ws, ok, j);
     return;
 }
 
@@ -1152,24 +1033,19 @@ void ChangePasswordAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 
     std::string newPasswordHash = hashPassword(pack["new_password"]);
 
-    if (Database::prepareStatement("UPDATE users SET password_hash = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            newPasswordHash,
-            getIntAnyway(pack["dest_uin"])
-        };
+    auto& stmt = PreparedStatementPool::getStatement("update_pass_hash");
+    Params params = {
+        newPasswordHash,
+        getIntAnyway(pack["dest_uin"])
+    };
 
-        Database::executeUpdate(params);
-        json j = json{
-            {"action", func_name},
-            {"message", "Вы сменили пароль"},
-        };
-        Answer(ws, ok, j);
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
-
+    stmt.executeUpdate(params);
+    json j = json{
+        {"action", func_name},
+        {"message", "Вы сменили пароль"},
+    };
+    Answer(ws, ok, j);
+    return;
 }
 
 void ChangePseudonymAdmin(WebSocketType* ws, const nlohmann::json& pack) {
@@ -1190,42 +1066,36 @@ void ChangePseudonymAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 
     long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
 
-    if (Database::prepareStatement("UPDATE users SET pseudonym = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            pack["new_pseudonym"].get<std::string>(),
-            dest_uin
-        };
+    auto& stmt = PreparedStatementPool::getStatement("change_pseudo");
+    Params params = {
+        pack["new_pseudonym"].get<std::string>(),
+        dest_uin
+    };
 
-        Database::executeUpdate(params);
-        json j = json{
-            {"action", func_name},
-            {"message", "Вы сменили псевдоним!"},
-        };
-        Answer(ws, ok, j);
+    stmt.executeUpdate(params);
+    json j = json{
+        {"action", func_name},
+        {"message", "Вы сменили псевдоним!"},
+    };
+    Answer(ws, ok, j);
         
 
-        json broadcast = json{
-            {"action", "broadcast" + std::string(func_name)},
-            {"UIN", dest_uin},
-            {"pseudonym", pack["new_pseudonym"].get<std::string>()}
-        };
-        ContactsBroadcast(dest_uin, ok, broadcast);
+    json broadcast = json{
+        {"action", "broadcast" + std::string(func_name)},
+        {"UIN", dest_uin},
+        {"pseudonym", pack["new_pseudonym"].get<std::string>()}
+    };
+    ContactsBroadcast(dest_uin, ok, broadcast);
 
-        //Отправляем ответ клиенту назначения, если он в сети
-        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
-            json j = json{
-                {"action", func_name},
-                {"pseudonym", pack["new_pseudonym"]},
-            };
-            WsServer::authKeys[dest_uin]["pseudonym"] = pack["new_pseudonym"].get<std::string>();
-            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
-        }
-
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
+    if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+        WsServer::authKeys[dest_uin]["pseudonym"] = pack["new_pseudonym"].get<std::string>();
     }
+
+    json j2 = json{
+        {"action", func_name},
+        {"pseudonym", pack["new_pseudonym"]},
+    };
+    SendToUin(dest_uin, ok, j2);
     return;
 }
 
@@ -1247,41 +1117,37 @@ void ChangeStatusAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 
     long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
 
-    if (Database::prepareStatement("UPDATE users SET status = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            pack["new_status"].get<std::string>(),
-            dest_uin
-        };
+    auto& stmt = PreparedStatementPool::getStatement("change_status");
+    Params params = {
+        pack["new_status"].get<std::string>(),
+        dest_uin
+    };
 
-        Database::executeUpdate(params);
-        json j = json{
-            {"action", func_name},
-            {"message", "Вы сменили статус!"},
-        };
-        Answer(ws, ok, j);
+    stmt.executeUpdate(params);
+    json j = json{
+        {"action", func_name},
+        {"message", "Вы сменили статус!"},
+    };
+    Answer(ws, ok, j);
         
 
-        json broadcast = json{
-            {"action", "broadcast" + std::string(func_name)},
-            {"UIN", dest_uin},
-            {"status", pack["new_status"].get<std::string>()}
-        };
-        ContactsBroadcast(dest_uin, ok, broadcast);
+    json broadcast = json{
+        {"action", "broadcast" + std::string(func_name)},
+        {"UIN", dest_uin},
+        {"status", pack["new_status"].get<std::string>()}
+    };
+    ContactsBroadcast(dest_uin, ok, broadcast);
 
-        //Отправляем ответ клиенту назначения, если он в сети
-        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
-            json j = json{
-                {"action", func_name},
-                {"status", pack["new_status"]},
-            };
-            WsServer::authKeys[dest_uin]["status"] = pack["new_status"].get<std::string>();
-            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
-        }
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
+    //Отправляем ответ клиенту назначения, если он в сети
+    if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+        WsServer::authKeys[dest_uin]["status"] = pack["new_status"].get<std::string>();
     }
+
+    json j2 = json{
+        {"action", func_name},
+        {"status", pack["new_status"]},
+    };
+    SendToUin(dest_uin, ok, j2);
     return;
 }
 
@@ -1302,46 +1168,42 @@ void BanUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 
     long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
 
-    if (Database::prepareStatement("UPDATE users SET is_active = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            false,
-            dest_uin
-        };
+    auto& stmt = PreparedStatementPool::getStatement("ban_user");
+    Params params = {
+        false,
+        dest_uin
+    };
+    stmt.executeUpdate(params);
 
-        Database::executeUpdate(params);
-        json j = json{
-            {"action", func_name},
-            {"message", "Вы забанили пользователя"},
-        };
-        Answer(ws, ok, j);
+    json j = json{
+        {"action", func_name},
+        {"message", "Вы забанили пользователя"},
+    };
+    Answer(ws, ok, j);
         
-        json broadcast = json{
-            {"action", "broadcast" + std::string(func_name)},
-            {"UIN", dest_uin},
-            {"is_active", false}
-        };
-        ContactsBroadcast(dest_uin, ok, broadcast);
+    json broadcast = json{
+        {"action", "broadcast" + std::string(func_name)},
+        {"UIN", dest_uin},
+        {"is_active", false}
+    };
+    ContactsBroadcast(dest_uin, ok, broadcast);
 
-        //Отправляем ответ клиенту назначения, если он в сети
-        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
-            json j = json{
-                {"action", func_name},
-                {"is_active", false},
-            };
-            WsServer::authKeys[dest_uin]["is_active"] = "0";
-            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
 
-            uWS::WebSocket<false, true, std::nullptr_t>* socket = WsServer::authorizedSockets[dest_uin];
-            auto* loop = uWS::Loop::get();
-            // Планируем закрытие в том же потоке
-            loop->defer([socket]() {
-               socket->close();
-            });
-        }
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
+    //Отправляем ответ клиенту назначения, если он в сети
+    json j2 = json{
+        {"action", func_name},
+        {"is_active", false},
+    };
+    SendToUin(dest_uin, ok, j2);
+
+    if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+        WsServer::authKeys[dest_uin]["is_active"] = "0";
+        uWS::WebSocket<false, true, std::nullptr_t>* socket = WsServer::authorizedSockets[dest_uin];
+        auto* loop = uWS::Loop::get();
+        // Планируем закрытие в том же потоке
+        loop->defer([socket]() {
+            socket->close();
+        });
     }
     return;
 }
@@ -1363,40 +1225,36 @@ void UnbanUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 
     long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
 
-    if (Database::prepareStatement("UPDATE users SET is_active = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            true,
-            dest_uin
-        };
+    auto& stmt = PreparedStatementPool::getStatement("ban_user");
+    Params params = {
+        true,
+        dest_uin
+    };
 
-        Database::executeUpdate(params);
-        json j = json{
-            {"action", func_name},
-            {"message", "Вы разбанили пользователя"},
-        };
-        Answer(ws, ok, j);
+    stmt.executeUpdate(params);
+    json j = json{
+        {"action", func_name},
+        {"message", "Вы разбанили пользователя"},
+    };
+    Answer(ws, ok, j);
         
-        json broadcast = json{
-            {"action", "broadcast" + std::string(func_name)},
-            {"UIN", dest_uin},
-            {"is_active", true}
-        };
-        ContactsBroadcast(dest_uin, ok, broadcast);
+    json broadcast = json{
+        {"action", "broadcast" + std::string(func_name)},
+        {"UIN", dest_uin},
+        {"is_active", true}
+    };
+    ContactsBroadcast(dest_uin, ok, broadcast);
 
-        //Отправляем ответ клиенту назначения, если он в сети
-        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
-            json j = json{
-                {"action", func_name},
-                {"is_active", true},
-            };
-            WsServer::authKeys[dest_uin]["is_active"] = "0";
-            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
-        }
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
+    //Отправляем ответ клиенту назначения, если он в сети
+    if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+        WsServer::authKeys[dest_uin]["is_active"] = "1";
     }
+
+    json j2 = json{
+        {"action", func_name},
+        {"is_active", true},
+    };
+    SendToUin(dest_uin, ok, j2);
     return;
 }
 
@@ -1417,46 +1275,40 @@ void KickUserAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 
     long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
     
-    if (Database::prepareStatement("UPDATE users SET auth_token = NULL WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            dest_uin
-        };
+    auto& stmt = PreparedStatementPool::getStatement("kick_user");
+    Params params = {
+        dest_uin
+    };
 
-        Database::executeUpdate(params);
-        json j = json{
-            {"action", func_name},
-            {"message", "Вы кикнули пользователя"},
-        };
-        Answer(ws, ok, j);
+    stmt.executeUpdate(params);
+    json j = json{
+        {"action", func_name},
+        {"message", "Вы кикнули пользователя"},
+    };
+    Answer(ws, ok, j);
         
-        json broadcast = json{
-            {"action", "broadcast" + std::string(func_name)},
-            {"UIN", dest_uin},
-            {"is_active", false}
-        };
-        ContactsBroadcast(dest_uin, ok, broadcast);
+    json broadcast = json{
+        {"action", "broadcast" + std::string(func_name)},
+        {"UIN", dest_uin},
+        {"is_active", false}
+    };
+    ContactsBroadcast(dest_uin, ok, broadcast);
 
-        //Отправляем ответ клиенту назначения, если он в сети
-        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
-            json j = json{
-                {"action", func_name},
-            };
-            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
-            
-            uWS::WebSocket<false, true, std::nullptr_t>* socket = WsServer::authorizedSockets[dest_uin];
-            auto* loop = uWS::Loop::get();
-            // Планируем закрытие в том же потоке
-            loop->defer([socket]() {
-               socket->close();
-            });
-        }
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
+    //Отправляем ответ клиенту назначения, если он в сети
+    json j2 = json{
+        {"action", func_name},
+    };
+    SendToUin(dest_uin, ok, j2);
+
+    if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+        uWS::WebSocket<false, true, std::nullptr_t>* socket = WsServer::authorizedSockets[dest_uin];
+        auto* loop = uWS::Loop::get();
+        // Планируем закрытие в том же потоке
+        loop->defer([socket]() {
+            socket->close();
+        });
     }
     return;
-
 }
 
 void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack) {
@@ -1485,33 +1337,29 @@ void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack) {
 
     long long int dest_uin =  getIntAnyway(pack["dest_uin"]);
 
-    if (Database::prepareStatement("UPDATE users SET roles = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            pack["roles"].get<std::string>(),
-            dest_uin
-        };
+    auto& stmt = PreparedStatementPool::getStatement("set_user_role");
+    Params params = {
+        pack["roles"].get<std::string>(),
+        dest_uin
+    };
 
-        Database::executeUpdate(params);
-        json j = json{
-            {"action", func_name},
-            {"message", "Вы изменили роль пользователя"},
-        };
-        Answer(ws, ok, j);
+    stmt.executeUpdate(params);
+    json j = json{
+        {"action", func_name},
+        {"message", "Вы изменили роль пользователя"},
+    };
+    Answer(ws, ok, j);
 
-        //Отправляем ответ клиенту назначения, если он в сети
-        if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
-            WsServer::authKeys[dest_uin]["roles"] = pack["roles"].get<std::string>();
-            json j = json{
-                {"action", func_name},
-                {"roles", pack["roles"]}
-            };
-            Answer(WsServer::authorizedSockets[dest_uin], ok, j);
-        }
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
+    if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
+        WsServer::authKeys[dest_uin]["roles"] = pack["roles"].get<std::string>();
     }
+    
+    //Отправляем ответ клиенту назначения, если он в сети
+    json j2 = json{
+        {"action", func_name},
+        {"roles", pack["roles"]}
+    };
+    SendToUin(dest_uin, ok, j2);
     return;
 }
 
@@ -1543,26 +1391,21 @@ void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack) {
         return;
     }
 
-    if (Database::prepareStatement("UPDATE users SET is_addable = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            addable,
-            uin
-        };
+    auto& stmt = PreparedStatementPool::getStatement("set_addable");
+    Params params = {
+        addable,
+        uin
+    };
 
-        Database::executeUpdate(params);
-        json j = json{
-            {"action", func_name},
-            {"message", "Вы изменили addable пользователя"},
-        };
-        Answer(ws, ok, j);
-        return;
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
+    stmt.executeUpdate(params);
+    json j = json{
+        {"action", func_name},
+        {"message", "Вы изменили addable пользователя"},
+    };
+    Answer(ws, ok, j);
     return;
 }
-
+/*
 void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 

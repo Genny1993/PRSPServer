@@ -35,8 +35,7 @@ bool WsServer::debug = false;
             {"UIN", uin},
             {"auth_key", auth_key}
         };
-        //TO DO: Вернуть обратно
-        //BroadcastOnline(ws, pack);
+        BroadcastOnline(ws, pack);
     }
 
     /**
@@ -52,8 +51,7 @@ bool WsServer::debug = false;
                     {"UIN", it->first},
                     {"auth_key", WsServer::authKeys[it->first]["auth_key"]}
                 };
-                //TO DO: Вернуть обратно
-                //BroadcastOffline(ws, pack);
+                BroadcastOffline(ws, pack);
                 authKeys.erase(it->first);
                 authorizedSockets.erase(it);
                 if (debug) {

@@ -200,3 +200,27 @@ bool validateMessageEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const s
     }
     return true;
 }
+
+bool ContactExistOption(long long int &initiator_uin, bool is_approved, uWS::WebSocket<false, true, std::nullptr_t>* ws, std::string_view func_name, const auto& pack) {
+    json Contact = json{};
+    auto& stmt = PreparedStatementPool::getStatement("contact_exist_option");
+    Params params = {
+        getIntAnyway(pack["contact_id"]),
+        getIntAnyway(pack["UIN"]),
+        is_approved
+    };
+
+    Contact = stmt.executeSelect(params);
+
+    if(Contact.empty()) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Контакт не существует"},
+        };
+        Answer(ws, clientError, j);
+        return false;
+    } else {
+        initiator_uin = getIntAnyway(Contact[0]["initiator_uin"]);
+    } 
+    return true;
+}

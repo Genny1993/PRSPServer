@@ -96,6 +96,70 @@ bool PreparedStatementPool::initializeAll() {
         failCount++;
     }
 
+    //Проверка на существование UIN
+    if (prepareAndStore("UIN_exist", "SELECT UIN, pseudonym, status, is_addable FROM users WHERE UIN = ? AND is_active = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Проверка на добавление контакта
+    if (prepareAndStore("contact_exist", "SELECT id FROM contacts WHERE (initiator_uin = ? AND destination_uin = ?) OR (initiator_uin = ? AND destination_uin = ?) AND is_chat = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Создание заявки в контакты
+    if (prepareAndStore("insert_new_contact", "INSERT INTO contacts (initiator_uin, destination_uin, is_chat, is_approved) VALUES (?, ?, ?, ?)")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Проверка на существование контакта
+    if (prepareAndStore("contact_exist_option", "SELECT id, initiator_uin FROM contacts WHERE id = ? AND destination_uin = ? AND is_approved = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Проверка на существование контакта с обоих сторон
+    if (prepareAndStore("contact_exist_option_2", "SELECT id, initiator_uin, destination_uin FROM contacts WHERE id = ? AND (initiator_uin = ? OR destination_uin = ?) AND is_approved = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+        //Проверка на существование сторона отправителя
+    if (prepareAndStore("contact_exist_option_3", "SELECT id, destination_uin FROM contacts WHERE id = ? AND initiator_uin = ? AND is_approved = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+
+    //Добавление в контакты
+    if (prepareAndStore("accept_contact", "UPDATE contacts SET is_approved = ? WHERE id = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Извлечение имени и статуса
+    if (prepareAndStore("get_pseudo_stat", "SELECT pseudonym, status FROM users WHERE UIN = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Удаление контакта
+    if (prepareAndStore("delete_contact", "DELETE FROM contacts WHERE id = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
     // ===== КОНЕЦ СПИСКА ЗАПРОСОВ =====
     
     auto endTime = std::chrono::steady_clock::now();

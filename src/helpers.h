@@ -78,6 +78,15 @@ bool Answer(WebSocketType* ws, std::string_view status, const auto& pack) {
     return true;
 }*/
 
+bool SendToUin(long long int uin, std::string_view status, const auto& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+    if (WsServer::authorizedSockets.find(uin) != WsServer::authorizedSockets.end()) {
+        Answer(WsServer::authorizedSockets[uin], status, pack);
+        return true;
+    }
+    return false;
+}
+
 std::string hashPassword(const std::string& pwd) {
     std::random_device rd;
     std::mt19937 gen(rd());

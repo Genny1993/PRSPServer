@@ -1405,7 +1405,7 @@ void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack) {
     Answer(ws, ok, j);
     return;
 }
-/*
+
 void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 

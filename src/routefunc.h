@@ -40,11 +40,11 @@ void UnbanUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void KickUserAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void ChangeRoleAdmin(WebSocketType* ws, const nlohmann::json& pack);
 void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack);
-/*void NewMessage(WebSocketType* ws, const nlohmann::json& pack);
-void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack);
+void NewMessage(WebSocketType* ws, const nlohmann::json& pack);
+/*void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack);
 void GetHistoryMessages(WebSocketType* ws, const nlohmann::json& pack);
 void SetDeliveredMessage(WebSocketType* ws, const nlohmann::json& pack);
-void SendTyping(WebSocketType* ws, const nlohmann::json& pack);
+/*void SendTyping(WebSocketType* ws, const nlohmann::json& pack);
 void DeleteMessage(WebSocketType* ws, const nlohmann::json& pack);
 void EditMessage(WebSocketType* ws, const nlohmann::json& pack);
 void GetOneMessage(WebSocketType* ws, const nlohmann::json& pack);
@@ -84,11 +84,11 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "kickUserAdmin") { KickUserAdmin(ws, pack); return; }
     if(method == "changeRoleAdmin") { ChangeRoleAdmin(ws, pack); return; }
     if(method == "changeAddable") { ChangeAddable(ws, pack); return; }
-    /*if(method == "newMessage") { NewMessage(ws, pack); return; }
-    if(method == "getLastMessages") { GetLastMessages(ws, pack); return; }
+    if(method == "newMessage") { NewMessage(ws, pack); return; }
+    /*if(method == "getLastMessages") { GetLastMessages(ws, pack); return; }
     if(method == "getHistoryMessages") { GetHistoryMessages(ws, pack); return; }
     if(method == "setDeliveredMessage") { SetDeliveredMessage(ws, pack); return; }
-    if(method == "sendTyping") { SendTyping(ws, pack); return; }
+    /*if(method == "sendTyping") { SendTyping(ws, pack); return; }
     if(method == "deleteMessage") { DeleteMessage(ws, pack); return; }
     if(method == "editMessage") { EditMessage(ws, pack); return; }
     if(method == "getOneMessage") { GetOneMessage(ws, pack); return; }
@@ -1405,7 +1405,7 @@ void ChangeAddable(WebSocketType* ws, const nlohmann::json& pack) {
     Answer(ws, ok, j);
     return;
 }
-/*
+
 void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 
@@ -1456,219 +1456,182 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
         if(!RequireField(ws, pack, "dest_uin", func_name, "Нет передаваемого UIN назначения")) return;
         long long int dest_uin = getIntAnyway(pack["dest_uin"]);
 
-        json User = json{};
         //Существует ли пользователь
-        if (Database::prepareStatement("SELECT UIN FROM users WHERE UIN = ? AND is_active = ?")) {
-            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                uin,
-                true
+        json User = json{};
+        auto& stmt = PreparedStatementPool::getStatement("user_exist");
+        Params params = {
+            uin,
+            true
+        };
+
+        User = stmt.executeSelect(params);
+
+        if(User.empty()) {
+            json j = json{
+                {"action", func_name},
+                {"message", "Пользователь не существует"},
             };
-
-            User = Database::executeSelect(params);
-
-            if(User.empty()) {
-                json j = json{
-                    {"action", func_name},
-                    {"message", "Пользователь не существует"},
-                };
-                Answer(ws, clientError, j);
-                return;
-            }
-        } else {
-            ThrowSQLError(ws, func_name);
+            Answer(ws, clientError, j);
             return;
-        }    
+        }
 
         json Contact = json{};
         //Существует ли контакт
-        if (Database::prepareStatement("SELECT id, initiator_uin, destination_uin FROM contacts WHERE (initiator_uin = ? AND destination_uin = ?) OR (initiator_uin = ? AND destination_uin = ?) AND is_chat = ? AND id = ? AND is_approved = ?")) {
-            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                uin,
-                dest_uin,
-                dest_uin,
-                uin,
-                false,
-                dest_id,
-                true
+        auto& stmt2 = PreparedStatementPool::getStatement("contact_exist_option_4");
+        Params params2 = {
+            uin,
+            dest_uin,
+            dest_uin,
+            uin,
+            false,
+            dest_id,
+            true
+        };
+
+        Contact = stmt2.executeSelect(params2);
+
+        if(Contact.empty()) {
+            json j2 = json{
+                {"action", func_name},
+                {"message", "Контакт не существует"},
             };
-
-            Contact = Database::executeSelect(params);
-
-            if(Contact.empty()) {
-                json j = json{
-                    {"action", func_name},
-                    {"message", "Контакт не существует"},
-                };
-                Answer(ws, clientError, j);
-                return;
-            }
-
-            std::string pseudonym = "";
-            //проверяем, точно ли это контакт этого пользователя
-            if(WsServer::authKeys.find(uin) != WsServer::authKeys.end()) {
-                if(WsServer::authKeys[uin]["auth_key"] != pack["auth_key"].get<std::string>()) {
-                    json j = json{
-                        {"action", func_name},
-                        {"message", "У вас нет прав для совершения этого действия (Ключ авторизации не подходит)"},
-                    };
-                    Answer(ws, clientError, j);
-                    return;
-                } else {
-                    pseudonym = WsServer::authKeys[uin]["pseudonym"];
-                }
-            } else {
-                json j = json{
-                    {"action", func_name},
-                    {"message", "У вас нет прав для совершения этого действия (Пользователь не найден)"},
-                };
-                Answer(ws, clientError, j);
-                return;
-            }
-
-            bool delivered = false;
-            std::string timestamp = getTimestampNow();
-            long long new_id = 0;
-
-            //Проверяем, может ли пользователь цитировать это сообщение
-            long long answer_id = 0;
-            json QuotedM = json{};
-            if(is_answer) {
-                answer_id = getIntAnyway(pack["answer_id"]);
-
-                if (Database::prepareStatement("SELECT id FROM messages WHERE dest_id = ? AND id = ? AND deleted = ? AND is_chat = FALSE")) {
-                    std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                        dest_id,
-                        answer_id,
-                        false
-                    };
-
-                    QuotedM = Database::executeSelect(params);
-
-                    if(QuotedM.empty()) {
-                        json j = json{
-                            {"action", func_name},
-                            {"message", "Вы не можете цитировать данное сообщение"},
-                        };
-                        Answer(ws, clientError, j);
-                        return;
-                    }
-                } else {
-                    ThrowSQLError(ws, func_name);
-                    return;
-                }    
-            }
-
-            //Пытаемся вставить сообщение в базу данных
-            if (Database::prepareStatement("INSERT INTO messages (in_uin, dest_uin, dest_id, is_chat, time_stamp, delivered, deleted, message, answer_id, attachment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-                std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                    uin,
-                    dest_uin,
-                    dest_id,
-                    false,
-                    timestamp,
-                    false,
-                    false,
-                    pack["message"].get<std::string>(),
-                    (answer_id > 0) ? answer_id : 0,
-                    0
-                };
-        
-                new_id = Database::executeInsertAndGetId(params);
-            } else {
-                ThrowSQLError(ws, func_name);
-                return;
-            }
-
-            json AnswerMessage = json{};
-            bool answer_exist = false;
-            if(is_answer) {
-                if (Database::prepareStatement("SELECT m.id, u.pseudonym, m.message FROM messages AS m "
-                    "LEFT JOIN users AS u ON u.UIN = in_uin "
-                    "WHERE dest_id = ? AND id = ? AND deleted = ? LIMIT 1")) {
-                    std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                        dest_id,
-                        answer_id,
-                        false
-                    };
-
-                    AnswerMessage = Database::executeSelect(params);
-
-                    if(!AnswerMessage.empty()) {
-                        answer_exist = true;
-                    }
-                } else {
-                    ThrowSQLError(ws, func_name);
-                    return;
-                }
-            }
-
-            //Пытаемся отправить сообщение другому пользователю.
-            if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
-                json j = json{
-                    {"action", "getNewMessageReciever"},
-                    {"id", new_id},
-                    {"sender_uin", pack["UIN"]},
-                    {"dest_uin", dest_uin},
-                    {"sender_pseudonym", pseudonym},
-                    {"dest_id", pack["dest_id"]},
-                    {"message", pack["message"]},
-                    {"time", timestamp},
-                    {"is_chat", pack["is_chat"]},
-                    {"delivered", "false"},
-                    {"is_my", "false"},
-                    {"answer_id", answer_exist ? AnswerMessage[0]["id"] : ""},
-                    {"answer_pseudonym", answer_exist ? AnswerMessage[0]["pseudonym"] : ""},
-                    {"answer_message", answer_exist ? AnswerMessage[0]["message"] : ""}
-                };
-                Answer(WsServer::authorizedSockets[dest_uin], ok, j);
-            }
-
-            //Пытаемся отправить ответ себе же
-            json j = json{
-                {"action", "getNewMessageSender"},
-                {"id", new_id},
-                {"sender_uin", pack["UIN"]},
-                {"dest_uin", dest_uin},
-                {"sender_pseudonym", pseudonym},
-                {"dest_id", pack["dest_id"]},
-                {"message", pack["message"]},
-                {"time", timestamp},
-                {"is_chat", pack["is_chat"]},
-                {"delivered", delivered ? "true" : "false"},
-                {"is_my", "true"},
-                {"answer_id", answer_exist ? AnswerMessage[0]["id"] : ""},
-                {"answer_pseudonym", answer_exist ? AnswerMessage[0]["pseudonym"] : ""},
-                {"answer_message", answer_exist ? AnswerMessage[0]["message"] : ""}
-            };
-            Answer(ws, ok, j);
-        } else {
-            ThrowSQLError(ws, func_name);
+            Answer(ws, clientError, j2);
             return;
         }
+
+        std::string pseudonym = "";
+        //проверяем, точно ли это контакт этого пользователя
+        if(WsServer::authKeys.find(uin) != WsServer::authKeys.end()) {
+            if(WsServer::authKeys[uin]["auth_key"] != pack["auth_key"].get<std::string>()) {
+                json j = json{
+                    {"action", func_name},
+                    {"message", "У вас нет прав для совершения этого действия (Ключ авторизации не подходит)"},
+                };
+                Answer(ws, clientError, j);
+                return;
+            } else {
+                pseudonym = WsServer::authKeys[uin]["pseudonym"];
+            }
+        } else {
+            json j = json{
+                {"action", func_name},
+                {"message", "У вас нет прав для совершения этого действия (Пользователь не найден)"},
+            };
+            Answer(ws, clientError, j);
+            return;
+        }
+
+        bool delivered = false;
+        std::string timestamp = getTimestampNow();
+        long long new_id = 0;
+
+        //Проверяем, может ли пользователь цитировать это сообщение
+        long long answer_id = 0;
+        json QuotedM = json{};
+        if(is_answer) {
+            answer_id = getIntAnyway(pack["answer_id"]);
+            auto& stmt = PreparedStatementPool::getStatement("answer_possible");
+            Params params = {
+                dest_id,
+                answer_id,
+                false
+            };
+
+            QuotedM = stmt.executeSelect(params);
+
+            if(QuotedM.empty()) {
+                json j = json{
+                    {"action", func_name},
+                    {"message", "Вы не можете цитировать данное сообщение"},
+                };
+                Answer(ws, clientError, j);
+                return;
+            }
+        }
+
+        //Пытаемся вставить сообщение в базу данных
+        auto& stmt3 = PreparedStatementPool::getStatement("new_message");
+        Params params3 = {
+            uin,
+            dest_uin,
+            dest_id,
+            false,
+            timestamp,
+            false,
+            false,
+            pack["message"].get<std::string>(),
+            (answer_id > 0) ? answer_id : 0,
+            0
+        };
+        
+        new_id = stmt3.executeInsertAndGetId(params3);
+
+        json AnswerMessage = json{};
+        bool answer_exist = false;
+        if(is_answer) {
+            auto& stmt = PreparedStatementPool::getStatement("message_answer");
+            Params params = {
+                dest_id,
+                answer_id,
+                false
+            };
+
+            AnswerMessage = stmt.executeSelect(params);
+
+            if(!AnswerMessage.empty()) {
+                answer_exist = true;
+            }
+        }
+
+        //Пытаемся отправить сообщение другому пользователю.
+        json j3 = json{
+            {"action", "getNewMessageReciever"},
+            {"id", new_id},
+            {"sender_uin", pack["UIN"]},
+            {"dest_uin", dest_uin},
+            {"sender_pseudonym", pseudonym},
+            {"dest_id", pack["dest_id"]},
+            {"message", pack["message"]},
+            {"time", timestamp},
+            {"is_chat", pack["is_chat"]},
+            {"delivered", "false"},
+            {"is_my", "false"},
+            {"answer_id", answer_exist ? AnswerMessage[0]["id"] : ""},
+            {"answer_pseudonym", answer_exist ? AnswerMessage[0]["pseudonym"] : ""},
+            {"answer_message", answer_exist ? AnswerMessage[0]["message"] : ""}
+        };
+        SendToUin(dest_uin, ok, j3);
+            
+        //Пытаемся отправить ответ себе же
+        json j4 = json{
+            {"action", "getNewMessageSender"},
+            {"id", new_id},
+            {"sender_uin", pack["UIN"]},
+            {"dest_uin", dest_uin},
+            {"sender_pseudonym", pseudonym},
+            {"dest_id", pack["dest_id"]},
+            {"message", pack["message"]},
+            {"time", timestamp},
+            {"is_chat", pack["is_chat"]},
+            {"delivered", delivered ? "true" : "false"},
+            {"is_my", "true"},
+            {"answer_id", answer_exist ? AnswerMessage[0]["id"] : ""},
+            {"answer_pseudonym", answer_exist ? AnswerMessage[0]["pseudonym"] : ""},
+            {"answer_message", answer_exist ? AnswerMessage[0]["message"] : ""}
+        };
+        Answer(ws, ok, j4);
     } else {
         //Проверяем права пользователя чата
         json Permission = json{};
 
-        if (Database::prepareStatement(
-            "SELECT "
-                "cu.id "
-            "FROM "
-                "chat_users cu "
-            "LEFT JOIN chats AS c ON cu.chat_id = c.id "
-            "WHERE "
-                "cu.chat_id = ? AND cu.user_uin = ? AND (cu.role = ? OR cu.role = ?) AND cu.confirmed = TRUE AND c.deleted = FALSE;"
-        )) {
-            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                pack["dest_id"].get<std::string>(),
-                uin,
-                "[\"admin\"]",
-                "[\"user\"]"
-            };
-            Permission = Database::executeSelect(params);
-        } else {
-            ThrowSQLError(ws, func_name);
-            return;
-        }
+        auto& stmt = PreparedStatementPool::getStatement("chat_permission");
+        Params params = {
+            pack["dest_id"].get<std::string>(),
+            uin,
+            "[\"admin\"]",
+            "[\"user\"]"
+        };
+        Permission = stmt.executeSelect(params);
 
         if(Permission.empty()) {
             json j = json{
@@ -1681,24 +1644,20 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
 
         json User = json{};
         //Получаем данные пользователя
-        if (Database::prepareStatement("SELECT * FROM users WHERE UIN = ? AND is_active = ?")) {
-            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                uin,
-                true
+        auto& stmt2 = PreparedStatementPool::getStatement("user_data");
+        Params params2 = {
+            uin,
+            true
+        };
+
+        User = stmt2.executeSelect(params2);
+
+        if(User.empty()) {
+            json j = json{
+                {"action", func_name},
+                {"message", "Пользователь не существует"},
             };
-
-            User = Database::executeSelect(params);
-
-            if(User.empty()) {
-                json j = json{
-                    {"action", func_name},
-                    {"message", "Пользователь не существует"},
-                };
-                Answer(ws, clientError, j);
-                return;
-            }
-        } else {
-            ThrowSQLError(ws, func_name);
+            Answer(ws, clientError, j);
             return;
         }
         
@@ -1711,111 +1670,74 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
         json QuotedM = json{};
         if(is_answer) {
             answer_id = getIntAnyway(pack["answer_id"]);
+            auto& stmt = PreparedStatementPool::getStatement("answer_possible_chat");
+            Params params = {
+                dest_id,
+                answer_id,
+                false
+            };
+            QuotedM = stmt.executeSelect(params);
 
-            if (Database::prepareStatement("SELECT id FROM messages WHERE dest_id = ? AND id = ? AND deleted = ? AND is_chat = TRUE")) {
-                std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                    dest_id,
-                    answer_id,
-                    false
+            if(QuotedM.empty()) {
+                json j = json{
+                    {"action", func_name},
+                    {"message", "Вы не можете цитировать данное сообщение"},
                 };
-
-                QuotedM = Database::executeSelect(params);
-
-                if(QuotedM.empty()) {
-                    json j = json{
-                        {"action", func_name},
-                        {"message", "Вы не можете цитировать данное сообщение"},
-                    };
-                    Answer(ws, clientError, j);
-                    return;
-                }
-            } else {
-                ThrowSQLError(ws, func_name);
+                Answer(ws, clientError, j);
                 return;
-            }    
+            }   
         }
 
         //Пытаемся вставить сообщение в базу данных
-        if (Database::prepareStatement("INSERT INTO messages (in_uin, dest_id, is_chat, time_stamp, delivered, deleted, message, answer_id, attachment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                uin,
-                dest_id,
-                true,
-                timestamp,
-                true,
-                false,
-                pack["message"].get<std::string>(),
-                (answer_id > 0) ? answer_id : 0,
-                0
-            };
+        auto& stmt3 = PreparedStatementPool::getStatement("new_message_chat");
+        Params params3 = {
+            uin,
+            dest_id,
+            true,
+            timestamp,
+            true,
+            false,
+            pack["message"].get<std::string>(),
+            (answer_id > 0) ? answer_id : 0,
+            0
+        };
         
-            new_id = Database::executeInsertAndGetId(params);
-        } else {
-            ThrowSQLError(ws, func_name);
-            return;
-        }
+        new_id = stmt3.executeInsertAndGetId(params3);
 
         json AnswerMessage = json{};
         bool answer_exist = false;
         if(is_answer) {
-            if (Database::prepareStatement("SELECT m.id, u.pseudonym, m.message FROM messages AS m "
-                "LEFT JOIN users AS u ON u.UIN = in_uin "
-                "WHERE dest_id = ? AND id = ? AND deleted = ? LIMIT 1")) {
-                std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                    dest_id,
-                    answer_id,
-                    false
-                };
+            auto& stmt = PreparedStatementPool::getStatement("message_answer");
+            Params params = {
+                dest_id,
+                answer_id,
+                false
+            };
 
-                AnswerMessage = Database::executeSelect(params);
+            AnswerMessage = stmt.executeSelect(params);
 
-                if(!AnswerMessage.empty()) {
-                    answer_exist = true;
-                }
-            } else {
-                ThrowSQLError(ws, func_name);
-                return;
+            if(!AnswerMessage.empty()) {
+                answer_exist = true;
             }
         }
 
         //Отправить пользователям в сети новое сообщение
-        nlohmann::json ChatUsers = nlohmann::json{};
-        if (Database::prepareStatement("SELECT cu.user_uin FROM chat_users as cu WHERE chat_id = ? AND confirmed = ? AND user_uin != ?")) {
-            std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-                getIntAnyway(pack["dest_id"]),
-                true,
-                uin
-            };
-
-            ChatUsers = Database::executeSelect(params);
-
-            for (auto& item : ChatUsers) {
-                if (item.is_object()) {
-                    long long int c_uin = item["user_uin"].get<long long int>();
-                    if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
-                        json j = json{
-                            {"action", "getNewMessageChatReciever"},
-                            {"id", new_id},
-                            {"sender_uin", pack["UIN"]},
-                            {"sender_pseudonym", User[0]["pseudonym"]},
-                            {"dest_id", pack["dest_id"]},
-                            {"message", pack["message"]},
-                            {"time", timestamp},
-                            {"is_chat", pack["is_chat"]},
-                            {"delivered", "false"},
-                            {"is_my", "false"},
-                            {"answer_id", answer_exist ? AnswerMessage[0]["id"] : ""},
-                            {"answer_pseudonym", answer_exist ? AnswerMessage[0]["pseudonym"] : ""},
-                            {"answer_message", answer_exist ? AnswerMessage[0]["message"] : ""}
-                        };
-                        Answer(WsServer::authorizedSockets[c_uin], ok, j);
-                    }
-                }
-            }
-        } else {
-            ThrowSQLError(ws, func_name);
-            return;
-        }
+        json j2 = json{
+            {"action", "getNewMessageChatReciever"},
+            {"id", new_id},
+            {"sender_uin", pack["UIN"]},
+            {"sender_pseudonym", User[0]["pseudonym"]},
+            {"dest_id", pack["dest_id"]},
+            {"message", pack["message"]},
+            {"time", timestamp},
+            {"is_chat", pack["is_chat"]},
+            {"delivered", "false"},
+            {"is_my", "false"},
+            {"answer_id", answer_exist ? AnswerMessage[0]["id"] : ""},
+            {"answer_pseudonym", answer_exist ? AnswerMessage[0]["pseudonym"] : ""},
+            {"answer_message", answer_exist ? AnswerMessage[0]["message"] : ""}
+        };
+        AllUsersChatBroadcast(uin, dest_id, ok, j2);
 
         //Пытаемся отправить ответ себе же
         json j = json{
@@ -1837,7 +1759,7 @@ void NewMessage(WebSocketType* ws, const nlohmann::json& pack) {
     }
     return;
 }
-
+/*
 void GetLastMessages(WebSocketType* ws, const nlohmann::json& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 
@@ -2403,7 +2325,7 @@ void SetDeliveredMessage(WebSocketType* ws, const nlohmann::json& pack) {
         return;
     }
 }
-
+/*
 void SendTyping(WebSocketType* ws, const nlohmann::json& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 

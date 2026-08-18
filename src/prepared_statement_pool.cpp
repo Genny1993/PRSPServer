@@ -287,6 +287,103 @@ bool PreparedStatementPool::initializeAll() {
         failCount++;
     }
 
+    //Проверка на существование пользователя с UIN
+    if (prepareAndStore("user_exist", "SELECT UIN FROM users WHERE UIN = ? AND is_active = ?"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Проверка на существование контакта 4
+    if (prepareAndStore("contact_exist_option_4", "SELECT id, initiator_uin, destination_uin FROM contacts WHERE (initiator_uin = ? AND destination_uin = ?) OR (initiator_uin = ? AND destination_uin = ?) AND is_chat = ? AND id = ? AND is_approved = ?"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Проверка на на возможность цитирования
+    if (prepareAndStore("answer_possible", "SELECT id FROM messages WHERE dest_id = ? AND id = ? AND deleted = ? AND is_chat = FALSE"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Проверка на на возможность цитирования чаты
+    if (prepareAndStore("answer_possible_chat", "SELECT id FROM messages WHERE dest_id = ? AND id = ? AND deleted = ? AND is_chat = TRUE"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Вставка нового сообщения в базу
+    if (prepareAndStore("new_message",  "INSERT INTO messages (in_uin, dest_uin, dest_id, is_chat, time_stamp, delivered, deleted, message, answer_id, attachment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Вставка нового сообщения в базу для чата
+    if (prepareAndStore("new_message_chat",  "INSERT INTO messages (in_uin, dest_id, is_chat, time_stamp, delivered, deleted, message, answer_id, attachment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Получение цитаты
+    if (prepareAndStore("message_answer",  
+        R"(SELECT m.id, u.pseudonym, m.message FROM messages AS m
+        LEFT JOIN users AS u ON u.UIN = in_uin
+        WHERE dest_id = ? AND id = ? AND deleted = ? LIMIT 1)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Проверка прав на группу
+    if (prepareAndStore("chat_permission",  
+        R"(SELECT
+                cu.id
+            FROM
+                chat_users cu
+            LEFT JOIN chats AS c ON cu.chat_id = c.id
+            WHERE
+                cu.chat_id = ? 
+                AND cu.user_uin = ? 
+                AND (
+                        cu.role = ? 
+                        OR cu.role = ?
+                    ) 
+                AND cu.confirmed = TRUE 
+                AND c.deleted = FALSE;)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Извлечь данные о пользователе
+    if (prepareAndStore("user_data", "SELECT * FROM users WHERE UIN = ? AND is_active = ?"   
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //получить всех пользователей в чате кроме отправителя
+    if (prepareAndStore("all_chat_users", "SELECT cu.user_uin FROM chat_users as cu WHERE chat_id = ? AND confirmed = ? AND user_uin != ?"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
     // ===== КОНЕЦ СПИСКА ЗАПРОСОВ =====
     
     auto endTime = std::chrono::steady_clock::now();

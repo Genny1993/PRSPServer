@@ -384,6 +384,87 @@ bool PreparedStatementPool::initializeAll() {
         failCount++;
     }
 
+    //Проверка на существование контакта 5
+    if (prepareAndStore("contact_exist_option_5", "SELECT id FROM contacts WHERE (initiator_uin = ? OR destination_uin = ?) AND is_chat = ? AND id = ? AND is_approved = ?"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Количество страниц
+    if (prepareAndStore("count_page", R"(
+        SELECT (COUNT(*) + ? - 1) / ? AS total_pages
+        FROM messages AS m
+        WHERE m.dest_id = ? AND m.deleted = ? AND m.is_chat = ?;)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Извлечь сообщения
+    if (prepareAndStore("get_last_messages", R"(
+        SELECT 
+            m.*,
+            CASE WHEN u2.pseudonym IS NOT NULL THEN u2.pseudonym END AS sender_pseudonym,
+            CASE WHEN m2.id IS NOT NULL THEN m2.id END AS answer_id,
+            CASE WHEN m2.message IS NOT NULL THEN m2.message END AS answer_message,
+            CASE WHEN u.pseudonym IS NOT NULL THEN u.pseudonym END AS answer_pseudonym,
+            CASE 
+                WHEN m.in_uin = ? THEN 1 
+                ELSE 0 
+            END AS is_my 
+        FROM messages AS m
+        LEFT JOIN messages AS m2 ON m.answer_id = m2.id AND m2.deleted = FALSE
+        LEFT JOIN users AS u ON m2.in_uin = u.UIN
+        LEFT JOIN users AS u2 ON m.in_uin = u2.UIN
+        WHERE m.dest_id = ? AND m.deleted = ? AND m.is_chat = ? ORDER BY m.id DESC LIMIT ?;)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Извлечь сообщения
+    if (prepareAndStore("get_history_messages", R"(
+        SELECT 
+            m.*,
+            CASE WHEN u2.pseudonym IS NOT NULL THEN u2.pseudonym END AS sender_pseudonym,
+            CASE WHEN m2.id IS NOT NULL THEN m2.id END AS answer_id,
+            CASE WHEN m2.message IS NOT NULL THEN m2.message END AS answer_message,
+            CASE WHEN u.pseudonym IS NOT NULL THEN u.pseudonym END AS answer_pseudonym,
+            CASE 
+                WHEN m.in_uin = ? THEN 1 
+                ELSE 0 
+            END AS is_my 
+        FROM messages AS m
+        LEFT JOIN messages AS m2 ON m.answer_id = m2.id AND m2.deleted = FALSE
+        LEFT JOIN users AS u ON m2.in_uin = u.UIN
+        LEFT JOIN users AS u2 ON m.in_uin = u2.UIN
+        WHERE m.dest_id = ? AND m.deleted = ? AND m.is_chat = ? ORDER BY m.id DESC LIMIT ? OFFSET ?;)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Соотносится ли сообщение с личным чатом.
+    if (prepareAndStore("message_request", "SELECT id FROM messages WHERE id = ? AND is_chat = ? AND dest_id = ? AND deleted = ? AND dest_uin = ?"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //пометить сообщение доставленным
+    if (prepareAndStore("set_delivered", "UPDATE messages SET delivered = ? WHERE id = ?"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
     // ===== КОНЕЦ СПИСКА ЗАПРОСОВ =====
     
     auto endTime = std::chrono::steady_clock::now();

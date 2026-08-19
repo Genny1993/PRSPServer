@@ -126,6 +126,7 @@ bool verifyRole(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int u
 }
 
 bool validatePasswordEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const std::string& p, std::string_view func_name) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     if(!validatePassword(p)) {
         json j = json{
             {"action", func_name},
@@ -139,6 +140,7 @@ bool validatePasswordEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const 
 }
 
 bool validatePseudonymEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const std::string& p, std::string_view func_name) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     if(!validatePseudonym(p)) {
         json j = json{
             {"action", func_name},
@@ -152,6 +154,7 @@ bool validatePseudonymEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const
 }
 
 bool VerifyAuthEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int uin, const std::string& ak, std::string_view func_name) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     if(!verifyAuth(ws, uin, ak)) {
         json j = json{
             {"action", func_name},
@@ -164,6 +167,7 @@ bool VerifyAuthEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long in
 }
 
 bool VerifyRoleEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long int uin, const std::vector<std::string>& roles, std::string_view func_name) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     if(!verifyRole(ws, uin, roles))
     {
         json j = json{
@@ -177,6 +181,7 @@ bool VerifyRoleEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, long long in
 }
 
 bool VerifyPasswordEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const std::string& p, const std::string& phash, std::string_view func_name) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     if(!verifyPassword(p, phash)) {
         json j = json{
             {"action", func_name},
@@ -189,6 +194,7 @@ bool VerifyPasswordEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const st
 }
 
 bool validateMessageEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const std::string& p, std::string_view func_name) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     if(!validateMessage(p)) {
         json j = json{
             {"action", func_name},
@@ -202,6 +208,7 @@ bool validateMessageEnv(uWS::WebSocket<false, true, std::nullptr_t>* ws, const s
 }
 
 bool ContactExistOption(long long int &initiator_uin, bool is_approved, uWS::WebSocket<false, true, std::nullptr_t>* ws, std::string_view func_name, const auto& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     json Contact = json{};
     auto& stmt = PreparedStatementPool::getStatement("contact_exist_option");
     Params params = {
@@ -222,5 +229,54 @@ bool ContactExistOption(long long int &initiator_uin, bool is_approved, uWS::Web
     } else {
         initiator_uin = getIntAnyway(Contact[0]["initiator_uin"]);
     } 
+    return true;
+}
+
+bool ChatPermissionAll(uWS::WebSocket<false, true, std::nullptr_t>* ws, std::string_view func_name, long long int uin, const nlohmann::json& pack) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+    json Permission = json{};
+
+    auto& stmt = PreparedStatementPool::getStatement("chat_permission");
+    Params params = {
+        pack["dest_id"].get<std::string>(),
+        uin,
+        "[\"admin\"]",
+        "[\"user\"]"
+    };
+    Permission = stmt.executeSelect(params);
+
+    if(Permission.empty()) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Чат не существует, или вы не имеете прав на получение информации"},
+        };
+        Answer(ws, clientError, j);
+        return false;
+    }
+    return true;
+}
+
+bool ContactPermission(uWS::WebSocket<false, true, std::nullptr_t>* ws, std::string_view func_name, long long int uin, long long int dest_id) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+    json Contact = json{};
+    auto& stmt = PreparedStatementPool::getStatement("contact_exist_option_5");
+    Params params = {
+        uin,
+        uin,
+        false,
+        dest_id,
+        true
+    };
+
+    Contact = stmt.executeSelect(params);
+
+    if(Contact.empty()) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Контакт не существует"},
+        };
+        Answer(ws, clientError, j);
+        return false;
+    }
     return true;
 }

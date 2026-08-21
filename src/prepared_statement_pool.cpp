@@ -527,6 +527,56 @@ bool PreparedStatementPool::initializeAll() {
     } else {
         failCount++;
     }
+
+    //Является ли сообщение доступным в личке
+    if (prepareAndStore("message_perm", R"(
+        SELECT m.id
+        FROM
+            messages AS m
+        WHERE
+            (m.in_uin = ? OR m.dest_uin = ?) AND is_chat = FALSE AND deleted = FALSE AND id = ?)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Является ли сообщение доступным в чате?
+    if (prepareAndStore("message_perm_chat", R"(
+        SELECT m.id
+        FROM
+            messages AS m
+        JOIN chats AS c ON c.id = m.dest_id
+        JOIN chat_users AS cu ON cu.confirmed = TRUE AND cu.chat_id = c.id
+        WHERE
+            m.is_chat = TRUE AND m.deleted = FALSE AND m.id = ? AND cu.user_uin = ?)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Достать сообщение с заданным id
+    if (prepareAndStore("get_message", R"(
+        SELECT m.*,
+            CASE WHEN u2.pseudonym IS NOT NULL THEN u2.pseudonym END AS sender_pseudonym,
+            CASE WHEN m2.id IS NOT NULL THEN m2.id END AS answer_id,
+            CASE WHEN m2.message IS NOT NULL THEN m2.message END AS answer_message,
+            CASE WHEN u.pseudonym IS NOT NULL THEN u.pseudonym END AS answer_pseudonym,
+            CASE 
+                WHEN m.in_uin = ? THEN 1 
+                ELSE 0 
+            END AS is_my 
+        FROM messages AS m
+        LEFT JOIN messages AS m2 ON m.answer_id = m2.id AND m2.deleted = FALSE
+        LEFT JOIN users AS u ON m2.in_uin = u.UIN
+        LEFT JOIN users AS u2 ON m.in_uin = u2.UIN
+        WHERE m.id = ?;)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
     
 
     // ===== КОНЕЦ СПИСКА ЗАПРОСОВ =====

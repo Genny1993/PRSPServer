@@ -384,6 +384,14 @@ bool PreparedStatementPool::initializeAll() {
         failCount++;
     }
 
+    //получить всех пользователей в чате
+    if (prepareAndStore("all_chat_users_all", "SELECT cu.user_uin FROM chat_users as cu WHERE chat_id = ? AND confirmed = ?"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
     //Проверка на существование контакта 5
     if (prepareAndStore("contact_exist_option_5", "SELECT id FROM contacts WHERE (initiator_uin = ? OR destination_uin = ?) AND is_chat = ? AND id = ? AND is_approved = ?"
     )) {
@@ -457,13 +465,69 @@ bool PreparedStatementPool::initializeAll() {
         failCount++;
     }
 
-    //пометить сообщение доставленным
+    //Соотносится ли сообщение с личным чатом.
+    if (prepareAndStore("message_request_admin", "SELECT id FROM messages WHERE id = ? AND is_chat = ? AND dest_id = ? AND deleted = ?"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Пометить сообщение доставленным
     if (prepareAndStore("set_delivered", "UPDATE messages SET delivered = ? WHERE id = ?"
     )) {
         successCount++;
     } else {
         failCount++;
     }
+
+    //Пометить сообщение удаленным
+    if (prepareAndStore("set_deleted", "UPDATE messages SET deleted = ? WHERE id = ?"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Является ли пользователь админом
+    if (prepareAndStore("is_chat_admin", 
+        R"(SELECT
+            cu.id
+        FROM
+            chat_users cu
+        WHERE
+            cu.chat_id = ? 
+            AND cu.user_uin = ? 
+            AND cu.role = ? 
+            AND cu.confirmed = TRUE;)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Является ли сообщение от этого пользователя
+    if (prepareAndStore("is_mess_chat", 
+        R"(SELECT
+            m.id
+        FROM
+            messages m
+        WHERE
+            m.dest_id = ? AND m.in_uin = ? AND m.deleted = FALSE;)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Является ли сообщение от этого пользователя
+    if (prepareAndStore("set_edited", "UPDATE messages SET message = ? WHERE id = ?"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+    
 
     // ===== КОНЕЦ СПИСКА ЗАПРОСОВ =====
     

@@ -125,6 +125,29 @@ bool AllUsersChatBroadcast(long long int uin, long long int dest_id, std::string
     return true;
 }
 
+bool AllUsersChatBroadcastAll(long long int dest_id, std::string_view status, const auto& answer) {
+    std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
+
+    nlohmann::json ChatUsers = nlohmann::json{};
+    auto& stmt = PreparedStatementPool::getStatement("all_chat_users_all");
+    Params params = {
+        dest_id,
+        true
+    };
+
+    ChatUsers = stmt.executeSelect(params);
+
+    for (auto& item : ChatUsers) {
+        if (item.is_object()) {
+            long long int c_uin = item["user_uin"].get<long long int>();
+            if (WsServer::authorizedSockets.find(c_uin) != WsServer::authorizedSockets.end()) {
+                Answer(WsServer::authorizedSockets[c_uin], status, answer);
+            }
+        }
+    }
+    return true;
+}
+
 bool SendToUin(long long int uin, std::string_view status, const auto& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
     if (WsServer::authorizedSockets.find(uin) != WsServer::authorizedSockets.end()) {

@@ -677,6 +677,71 @@ bool PreparedStatementPool::initializeAll() {
         failCount++;
     }
 
+    //изменение возможности создать чат
+    if (prepareAndStore("c_chat_creatable", "UPDATE users SET chat_enabled = ? WHERE UIN = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //изменение количества возможных чатов
+    if (prepareAndStore("c_chat_count", "UPDATE users SET max_chats_allowed = ? WHERE UIN = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //определение количества существующих страниц поиска чатов
+    if (prepareAndStore("chat_count_page", R"(
+        SELECT (COUNT(*) + ? - 1) / ? AS total_pages
+        FROM chats
+        WHERE deleted = ? 
+            AND 
+                (name LIKE CONCAT('%', ?, '%') 
+                OR 
+                description LIKE CONCAT('%', ?, '%'));)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //поиск чатов
+    if (prepareAndStore("get_find_chats", "SELECT id, name, description FROM chats WHERE deleted = ? AND (name LIKE CONCAT('%', ?, '%') OR description LIKE CONCAT('%', ?, '%')) LIMIT ? OFFSET ?;)")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Чаты по популярности
+    if (prepareAndStore("get_find_pop_chats", R"(
+        SELECT 
+            c.id,
+            c.name,
+            c.description,
+            COALESCE(mc.cnt, 0) AS messages,
+            COALESCE(uc.cnt, 0) AS members,
+            COALESCE(mc.cnt, 0) * LOG(COALESCE(uc.cnt, 1) + 1) AS popularity
+        FROM chats AS c
+        LEFT JOIN (
+            SELECT dest_id, COUNT(*) AS cnt
+            FROM messages
+            WHERE is_chat = TRUE AND deleted = FALSE
+            GROUP BY dest_id
+        ) AS mc ON c.id = mc.dest_id
+        LEFT JOIN (
+            SELECT chat_id, COUNT(*) AS cnt
+            FROM chat_users
+            WHERE confirmed = TRUE
+            GROUP BY chat_id
+        ) AS uc ON c.id = uc.chat_id
+        WHERE c.deleted = FALSE
+        ORDER BY popularity DESC LIMIT ? OFFSET ?;)")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
     // ===== КОНЕЦ СПИСКА ЗАПРОСОВ =====
     
     auto endTime = std::chrono::steady_clock::now();

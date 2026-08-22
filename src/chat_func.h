@@ -435,7 +435,7 @@ void ChangeChatOwner(WebSocketType* ws, const nlohmann::json& pack) {
         return;
     }
 }
-/*
+
 void ChangeUserChatPermAdmin(WebSocketType* ws, const nlohmann::json& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 
@@ -452,35 +452,30 @@ void ChangeUserChatPermAdmin(WebSocketType* ws, const nlohmann::json& pack) {
     if(!VerifyRoleEnv(ws, uin, {"admin"}, func_name)) return;
 
     //Смотрим, cуществует ли такой пользоваетль
-    if (Database::prepareStatement("SELECT UIN FROM users WHERE UIN = ? AND is_active = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            dest_uin,
-            true
+    auto& stmt = PreparedStatementPool::getStatement("user_exist");
+    Params params = {
+        dest_uin,
+        true
+    };
+
+    json verifyUser = stmt.executeSelect(params);
+
+    if(verifyUser.empty()) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Указанного пользователя не существует"},
         };
-
-        json verifyUser = Database::executeSelect(params);
-
-        if(verifyUser.empty()) {
-            json j = json{
-                {"action", func_name},
-                {"message", "Указанного пользователя не существует"},
-            };
-            Answer(ws, clientError, j);
-            return;
-        }
+        Answer(ws, clientError, j);
+        return;
     }
 
     //Меняем возможность создавать чаты
-    if (Database::prepareStatement("UPDATE users SET chat_enabled = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            getIntAnyway(pack["new_permission"]),
-            dest_uin
-        };
-        Database::executeUpdate(params);
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
+    auto& stmt2 = PreparedStatementPool::getStatement("c_chat_creatable");
+    Params params2 = {
+        getIntAnyway(pack["new_permission"]),
+        dest_uin
+    };
+    stmt2.executeUpdate(params2);
 
     //Доставляем сообщение о том, что возможность создавать чаты изменена
     json j = json{
@@ -490,15 +485,13 @@ void ChangeUserChatPermAdmin(WebSocketType* ws, const nlohmann::json& pack) {
     };
     Answer(ws, ok, j);
 
-    //Доставляем сообщение об изменении 
-    if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
-        json j = json{
-            {"action", std::string(func_name) + "Reciever"},
-            {"permission", getIntAnyway(pack["new_permission"])},
-            {"message", "Вам изменили возможность создавать чаты"}
-        };
-        Answer(WsServer::authorizedSockets[dest_uin], ok, j);
-    }
+    //Доставляем сообщение об изменении
+    json j2 = json{
+        {"action", std::string(func_name) + "Reciever"},
+        {"permission", getIntAnyway(pack["new_permission"])},
+        {"message", "Вам изменили возможность создавать чаты"}
+    };
+    SendToUin(dest_uin, ok, j2);
 }
 
 void ChangeUserChatCountAdmin(WebSocketType* ws, const nlohmann::json& pack) {
@@ -517,35 +510,30 @@ void ChangeUserChatCountAdmin(WebSocketType* ws, const nlohmann::json& pack) {
     if(!VerifyRoleEnv(ws, uin, {"admin"}, func_name)) return;
 
     //Смотрим, cуществует ли такой пользоваетль
-    if (Database::prepareStatement("SELECT UIN FROM users WHERE UIN = ? AND is_active = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            dest_uin,
-            true
+    auto& stmt = PreparedStatementPool::getStatement("user_exist");
+    Params params = {
+        dest_uin,
+        true
+    };
+
+    json verifyUser = stmt.executeSelect(params);
+
+    if(verifyUser.empty()) {
+        json j = json{
+            {"action", func_name},
+            {"message", "Указанного пользователя не существует"},
         };
-
-        json verifyUser = Database::executeSelect(params);
-
-        if(verifyUser.empty()) {
-            json j = json{
-                {"action", func_name},
-                {"message", "Указанного пользователя не существует"},
-            };
-            Answer(ws, clientError, j);
-            return;
-        }
+        Answer(ws, clientError, j);
+        return;
     }
 
     //Меняем количество возможных чатов
-    if (Database::prepareStatement("UPDATE users SET max_chats_allowed = ? WHERE UIN = ?")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            getIntAnyway(pack["new_allowed_count"]),
-            dest_uin
-        };
-        Database::executeUpdate(params);
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
+    auto& stmt2 = PreparedStatementPool::getStatement("c_chat_count");
+    Params params2 = {
+        getIntAnyway(pack["new_allowed_count"]),
+        dest_uin
+    };
+    stmt2.executeUpdate(params2);
 
     //Доставляем сообщение о том, что возможность создавать чаты изменена
     json j = json{
@@ -556,14 +544,12 @@ void ChangeUserChatCountAdmin(WebSocketType* ws, const nlohmann::json& pack) {
     Answer(ws, ok, j);
 
     //Доставляем сообщение об изменении 
-    if (WsServer::authorizedSockets.find(dest_uin) != WsServer::authorizedSockets.end()) {
-        json j = json{
-            {"action", std::string(func_name) + "Reciever"},
-            {"count", getIntAnyway(pack["new_allowed_count"])},
-            {"message", "Вам изменили лимит возможных чатов"}
-        };
-        Answer(WsServer::authorizedSockets[dest_uin], ok, j);
-    }
+    json j2 = json{
+        {"action", std::string(func_name) + "Reciever"},
+        {"count", getIntAnyway(pack["new_allowed_count"])},
+        {"message", "Вам изменили лимит возможных чатов"}
+    };
+    SendToUin(dest_uin, ok, j2);
 }
 
 void FindChats(WebSocketType* ws, const nlohmann::json& pack) {
@@ -595,52 +581,35 @@ void FindChats(WebSocketType* ws, const nlohmann::json& pack) {
     //Определяем количество существующих страниц.
     json Pages = json{};
     int pages = 0;
-    if (Database::prepareStatement(R"(
-        SELECT (COUNT(*) + ? - 1) / ? AS total_pages
-        FROM chats
-        WHERE deleted = ? 
-            AND 
-                (name LIKE CONCAT('%', ?, '%') 
-                OR 
-                description LIKE CONCAT('%', ?, '%'));)"
-        )) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            limit,
-            limit,
-            false,
-            pack["find_string"].get<std::string>(),
-            pack["find_string"].get<std::string>(),
-        };
+    auto& stmt = PreparedStatementPool::getStatement("chat_count_page");
+    Params params = {
+        limit,
+        limit,
+        false,
+        pack["find_string"].get<std::string>(),
+        pack["find_string"].get<std::string>(),
+    };
 
-        Pages = Database::executeSelect(params);
-        pages = getIntAnyway(Pages[0]["total_pages"]);
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
+    Pages = stmt.executeSelect(params);
+    pages = getIntAnyway(Pages[0]["total_pages"]);
 
-    if (Database::prepareStatement("SELECT id, name, description FROM chats WHERE deleted = ? AND (name LIKE CONCAT('%', ?, '%') OR description LIKE CONCAT('%', ?, '%')) LIMIT " + std::to_string(limit) + " OFFSET " + std::to_string(limit * (page - 1)) + ";")) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-            false,
-            pack["find_string"].get<std::string>(),
-            pack["find_string"].get<std::string>()
-        };
+    auto& stmt2 = PreparedStatementPool::getStatement("get_find_chats");
+    Params params2 = {
+        false,
+        pack["find_string"].get<std::string>(),
+        pack["find_string"].get<std::string>(),
+        limit,
+        limit * (page - 1)
+    };
+    json findChats = stmt2.executeSelect(params2);
 
-        json findChats = Database::executeSelect(params);
-
-        json j = json{
-            {"action", func_name},
-            {"pages", pages},
-            {"chats", findChats}
-        };
-        Answer(ws, ok, j);
-        return;
-
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
-
+    json j = json{
+        {"action", func_name},
+        {"pages", pages},
+        {"chats", findChats}
+    };
+    Answer(ws, ok, j);
+    return;
 }
 
 void GetChats(WebSocketType* ws, const nlohmann::json& pack) {
@@ -672,47 +641,22 @@ void GetChats(WebSocketType* ws, const nlohmann::json& pack) {
     
     //Достаем чаты отсортированные по метрике популярности
     json Chats = json{};
-    if (Database::prepareStatement(R"(
-        SELECT 
-            c.id,
-            c.name,
-            c.description,
-            COALESCE(mc.cnt, 0) AS messages,
-            COALESCE(uc.cnt, 0) AS members,
-            COALESCE(mc.cnt, 0) * LOG(COALESCE(uc.cnt, 1) + 1) AS popularity
-        FROM chats AS c
-        LEFT JOIN (
-            SELECT dest_id, COUNT(*) AS cnt
-            FROM messages
-            WHERE is_chat = TRUE AND deleted = FALSE
-            GROUP BY dest_id
-        ) AS mc ON c.id = mc.dest_id
-        LEFT JOIN (
-            SELECT chat_id, COUNT(*) AS cnt
-            FROM chat_users
-            WHERE confirmed = TRUE
-            GROUP BY chat_id
-        ) AS uc ON c.id = uc.chat_id
-        WHERE c.deleted = FALSE
-        ORDER BY popularity DESC LIMIT )" + std::to_string(limit) + " OFFSET " + std::to_string(limit * (page - 1)) + ";"
-    )) {
-        std::vector<std::variant<int, double, std::string, bool, long long>> params = {
-        };
+    auto& stmt = PreparedStatementPool::getStatement("get_find_pop_chats");
+    Params params = {
+        limit,
+        limit * (page - 1)
+    };
 
-        Chats = Database::executeSelect(params);
+    Chats = stmt.executeSelect(params);
         
-        //Отправляем ответ клиенту
-        json j = json{
-            {"action", func_name},
-            {"chats", Chats},
-        };
-        Answer(ws, ok, j);
-    } else {
-        ThrowSQLError(ws, func_name);
-        return;
-    }
+    //Отправляем ответ клиенту
+    json j = json{
+        {"action", func_name},
+        {"chats", Chats},
+    };
+    Answer(ws, ok, j);
 }
-
+/*
 void NewChatRequest(WebSocketType* ws, const nlohmann::json& pack) {
     std::lock_guard<std::recursive_mutex> lock(WsServer::globalMutex);
 

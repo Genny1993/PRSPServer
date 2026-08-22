@@ -99,11 +99,11 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "changeChatName") { ChangeChatName(ws, pack); return; }
     if(method == "changeChatDesc") { ChangeChatDesc(ws, pack); return; }
     if(method == "changeChatOwner") { ChangeChatOwner(ws, pack); return; }
-/*    if(method == "changeUserChatPermAdmin") { ChangeUserChatPermAdmin(ws, pack); return; }
+    if(method == "changeUserChatPermAdmin") { ChangeUserChatPermAdmin(ws, pack); return; }
     if(method == "changeUserChatCountAdmin") { ChangeUserChatCountAdmin(ws, pack); return; }
     if(method == "findChats") { FindChats(ws, pack); return; }
     if(method == "getChats") { GetChats(ws, pack); return; }
-    if(method == "newChatRequest") { NewChatRequest(ws, pack); return; }
+/*  if(method == "newChatRequest") { NewChatRequest(ws, pack); return; }
     if(method == "cancelChatRequest") { CancelChatRequest(ws, pack); return; }
     if(method == "rejectChatRequest") { RejectChatRequest(ws, pack); return; }
     if(method == "acceptChatRequest") { AcceptChatRequest(ws, pack); return; }

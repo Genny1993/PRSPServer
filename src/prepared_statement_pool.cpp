@@ -577,7 +577,105 @@ bool PreparedStatementPool::initializeAll() {
     } else {
         failCount++;
     }
+
+    //Проверка возмоности создания чата
+    if (prepareAndStore("new_chat_perm", 
+        R"(SELECT
+            u.UIN,
+            u.chat_enabled,
+            u.max_chats_allowed,
+            COUNT(c.id) AS current_chats_count,
+            CASE
+                WHEN u.chat_enabled = FALSE THEN 0
+                WHEN COUNT(c.id) >= u.max_chats_allowed THEN 1
+                ELSE 2
+                END AS can_create_chat 
+        FROM
+            users u
+        LEFT JOIN
+            chats c ON u.UIN = c.owner AND deleted = FALSE
+        WHERE
+            u.UIN = ?
+        GROUP BY
+            u.UIN, u.chat_enabled, u.max_chats_allowed;)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Вставка нового чата в БД
+    if (prepareAndStore("insert_chat", R"(INSERT INTO chats (name, description, owner, deleted) VALUES (?, ?, ?, ?);)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
     
+
+    //Добавление админа в новый чат
+    if (prepareAndStore("insert_admin", R"(INSERT INTO chat_users (user_uin, chat_id, confirmed, role) VALUES (?, ?, ?, ?);)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Проверка прав на владение чатом
+    if (prepareAndStore("owner_perm", 
+        R"(SELECT
+            c.id
+        FROM
+            chats c
+        WHERE
+            c.id = ? AND c.owner = ? AND c.deleted = FALSE;)"
+    )) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Удаление чата
+    if (prepareAndStore("del_chat", "UPDATE chats SET deleted = ? WHERE id = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Изменение имени чата
+    if (prepareAndStore("c_name_chat", "UPDATE chats SET name = ? WHERE id = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Изменение описания чата
+    if (prepareAndStore("c_desc_chat", "UPDATE chats SET description = ? WHERE id = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //Изменение владельца чата
+    if (prepareAndStore("c_owner_chat", "UPDATE chats SET owner = ? WHERE id = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //проверка, состоит ли пользователь в чате
+    if (prepareAndStore("user_is_member", "SELECT id FROM chat_users WHERE chat_id = ? AND user_uin = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
+
+    //изменение роли пользователя чата
+    if (prepareAndStore("c_member_role", "UPDATE chat_users SET confirmed = ?, role = ? WHERE chat_id = ? AND user_uin = ?")) {
+        successCount++;
+    } else {
+        failCount++;
+    }
 
     // ===== КОНЕЦ СПИСКА ЗАПРОСОВ =====
     

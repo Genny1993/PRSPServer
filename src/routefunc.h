@@ -93,13 +93,13 @@ void Router(WebSocketType* ws, std::string_view message, const std::string& meth
     if(method == "editMessage") { EditMessage(ws, pack); return; }
     if(method == "getOneMessage") { GetOneMessage(ws, pack); return; }
     if(method == "sendWakeUp") { SendWakeUp(ws, pack); return; }
-/*
+
     if(method == "newChat") { NewChat(ws, pack); return; }
     if(method == "deleteChat") { DeleteChat(ws, pack); return; }
     if(method == "changeChatName") { ChangeChatName(ws, pack); return; }
     if(method == "changeChatDesc") { ChangeChatDesc(ws, pack); return; }
     if(method == "changeChatOwner") { ChangeChatOwner(ws, pack); return; }
-    if(method == "changeUserChatPermAdmin") { ChangeUserChatPermAdmin(ws, pack); return; }
+/*    if(method == "changeUserChatPermAdmin") { ChangeUserChatPermAdmin(ws, pack); return; }
     if(method == "changeUserChatCountAdmin") { ChangeUserChatCountAdmin(ws, pack); return; }
     if(method == "findChats") { FindChats(ws, pack); return; }
     if(method == "getChats") { GetChats(ws, pack); return; }
